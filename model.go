@@ -5,12 +5,7 @@ import (
 )
 
 type (
-	UserInfo interface {
-		GetName() string
-		GetEmail() string
-		GetRole() string
-		GetUserID() string // to keep UserAuthorizeHandler() returned
-	}
+	UserInfo map[string]interface{}
 
 	// ClientInfo the client information model interface
 	ClientInfo interface {

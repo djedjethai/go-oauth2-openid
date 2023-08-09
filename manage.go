@@ -7,28 +7,28 @@ import (
 	"time"
 )
 
-type UserInfoStorage struct {
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
-	UserID string `json:"userid"`
-}
-
-func (uis UserInfoStorage) GetName() string {
-	return uis.Name
-}
-
-func (uis UserInfoStorage) GetEmail() string {
-	return uis.Email
-}
-
-func (uis UserInfoStorage) GetRole() string {
-	return uis.Role
-}
-
-func (uis UserInfoStorage) GetUserID() string {
-	return uis.UserID
-}
+// type UserInfoStorage struct {
+// 	Name   string `json:"name"`
+// 	Email  string `json:"email"`
+// 	Role   string `json:"role"`
+// 	UserID string `json:"userid"`
+// }
+//
+// func (uis UserInfoStorage) GetName() string {
+// 	return uis.Name
+// }
+//
+// func (uis UserInfoStorage) GetEmail() string {
+// 	return uis.Email
+// }
+//
+// func (uis UserInfoStorage) GetRole() string {
+// 	return uis.Role
+// }
+//
+// func (uis UserInfoStorage) GetUserID() string {
+// 	return uis.UserID
+// }
 
 // TokenGenerateRequest provide to generate the token request parameters
 type TokenGenerateRequest struct {

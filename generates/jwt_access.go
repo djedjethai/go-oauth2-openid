@@ -15,30 +15,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// func (ui *UserInfo) GetName() string {
-// 	return ui.Name
-// }
-//
-// func (ui *UserInfo) GetEmail() string {
-// 	return ui.Email
-// }
-//
-// func (ui *UserInfo) GetRole() string {
-// 	return ui.Role
-// }
-//
-// func (ui *UserInfo) GetUserID() string {
-// 	return ui.UserID
-// }
-
 // JWTAccessClaims jwt claims
 type JWTAccessClaims struct {
 	jwt.StandardClaims
-	Name         string `json:"name"`
-	Email        string `json:"email"`
-	Role         string `json:"role"`
-	AccessToken  string `json:"AccessToken"`
-	RefreshToken string `json:"RefreshToken"`
+	UserInfo     oauth2.UserInfo `json:"userInfo"`
+	AccessToken  string          `json:"accessToken"`
+	RefreshToken string          `json:"refreshToken"`
 }
 
 // Valid claims verification
@@ -89,15 +71,11 @@ func (a *JWTAccessGenerate) TokenOpenid(ctx context.Context, ti oauth2.TokenInfo
 
 	claims := &JWTAccessClaims{
 		StandardClaims: jwt.StandardClaims{
-			// Audience:  data.Client.GetID(),
-			Audience: ti.GetClientID(),
-			// Subject:   data.UserID,
+			Audience:  ti.GetClientID(),
 			Subject:   ti.GetUserID(),
 			ExpiresAt: ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix(),
 		},
-		Name:         ui.GetName(),
-		Email:        ui.GetEmail(),
-		Role:         ui.GetRole(),
+		UserInfo:     ui,
 		AccessToken:  ti.GetAccess(),
 		RefreshToken: ti.GetRefresh(),
 	}
@@ -155,6 +133,7 @@ func (a *JWTAccessGenerate) TokenOpenid(ctx context.Context, ti oauth2.TokenInfo
 }
 
 // TODO implement refresh jwtOpenidToken or isGenRferesh already do it ?
+
 func (a *JWTAccessGenerate) ValidOpenidToken(ctx context.Context, secret, tokenString string) bool {
 	if a.isHs() {
 		var secretKey = []byte(secret)

@@ -38,8 +38,8 @@ func NewServer(cfg *Config, manager oauth2.Manager) *Server {
 		return "", errors.ErrAccessDenied
 	}
 
-	srv.UserOpenidHandler = func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-		return "", errors.ErrAccessDenied
+	srv.UserOpenidHandler = func(w http.ResponseWriter, r *http.Request) (map[string]interface{}, string, string, string, error) {
+		return nil, "key", "secretKey", "HS256", errors.ErrAccessDenied
 	}
 
 	return srv
@@ -589,31 +589,13 @@ func (s *Server) GetJWTokenData(ti oauth2.TokenInfo, token, refreshToken string)
 	return data
 }
 
-// type UInfo struct {
-// 	Name  string
-// 	Email string
-// }
-
 func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, ti oauth2.TokenInfo) (map[string]interface{}, error) {
 
-	// TODO call the s.UserOpenidHandler(w, r)
-	// should extract the UserInfo model
-	data, _ := s.UserOpenidHandler(w, r)
+	data, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
 
-	log.Println("seeeee the daTA: ", data)
-
-	log.Println("server.go HandleTokenRequest see token info scope: ", ti.GetScope())
-	log.Println("server.go HandleTokenRequest see token info accessToken: ", ti.GetAccess())
-	log.Println("server.go HandleTokenRequest see token info refreshToken: ", ti.GetRefresh())
-
-	// Split the returned scopes into an array
-	// TODO all this logic should be imported via a func
-	log.Println("In opennnnniiiddddd")
-	ui := oauth2.UserInfoStorage{
-		Name:  "myName",
-		Email: "myEmail"}
-	s.Manager.SetJWTAccessGenerate("keyID", []byte("keySecret"), "HS256")
-	at, rt, err := s.Manager.TokenOpenid(ctx, ti, true, ui)
+	// s.Manager.SetJWTAccessGenerate("keyID", []byte("keySecret"), "HS256")
+	s.Manager.SetJWTAccessGenerate(keyID, []byte(secretKey), encoding)
+	at, rt, err := s.Manager.TokenOpenid(ctx, ti, true, oauth2.UserInfo(data))
 	if err != nil {
 		return nil, errors.ErrServerError
 	}
@@ -623,11 +605,21 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 
 	// test validateOpenidToken
 	isAtValide := s.Manager.ValidOpenidToken(ctx, "invalidSecret", at)
-	isRtValide := s.Manager.ValidOpenidToken(ctx, "keySecret", rt)
+	isRtValide := s.Manager.ValidOpenidToken(ctx, secretKey, rt)
 	log.Println("Is at valide: ", isAtValide)
 	log.Println("Is rt valide: ", isRtValide)
 
 	return s.GetJWTokenData(ti, at, rt), nil
+}
+
+// TODO implement the refresh openid token logic
+func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+	// _, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
+
+	// valid the refreshJWT if ok refresh jwt + accessToken, if not ok return err
+
+	return nil
 }
 
 // HandleTokenRequest token request handling
