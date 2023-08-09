@@ -72,7 +72,7 @@ type Manager interface {
 	// according to the refresh token for corresponding token information
 	LoadRefreshToken(ctx context.Context, refresh string) (ti TokenInfo, err error)
 
-	TokenOpenid(ctx context.Context, ti TokenInfo, isGenRefresh bool, uInfo UserInfo) (string, string, error)
+	TokenOpenid(ctx context.Context, ti TokenInfo, isGenRefresh bool, oInfo OpenidInfo) (string, string, error)
 
 	SetJWTAccessGenerate(keyID string, secretKey []byte, signInMethod ...string)
 

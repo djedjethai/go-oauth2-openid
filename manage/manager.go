@@ -64,11 +64,11 @@ func (m *Manager) grantConfig(gt oauth2.GrantType) *Config {
 
 // TODO craete UserInfo
 // func (m *Manager) GenerateOpenidJWT(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, uInfo oauth2.UserInfo) (string, string, error) {
-func (m *Manager) TokenOpenid(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, uInfo oauth2.UserInfo) (string, string, error) {
+func (m *Manager) TokenOpenid(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, oInfo oauth2.OpenidInfo) (string, string, error) {
 	// TODO create a userInfo struct
 
 	// TODO see if m.accessGenerate is not already called
-	return m.jwtAccessGenerate.TokenOpenid(ctx, ti, isGenRefresh, uInfo)
+	return m.jwtAccessGenerate.TokenOpenid(ctx, ti, isGenRefresh, oInfo)
 
 }
 

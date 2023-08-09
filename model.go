@@ -5,7 +5,7 @@ import (
 )
 
 type (
-	UserInfo map[string]interface{}
+	OpenidInfo map[string]interface{}
 
 	// ClientInfo the client information model interface
 	ClientInfo interface {

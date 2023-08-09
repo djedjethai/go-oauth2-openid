@@ -18,9 +18,9 @@ import (
 // JWTAccessClaims jwt claims
 type JWTAccessClaims struct {
 	jwt.StandardClaims
-	UserInfo     oauth2.UserInfo `json:"userInfo"`
-	AccessToken  string          `json:"accessToken"`
-	RefreshToken string          `json:"refreshToken"`
+	UserInfo     oauth2.OpenidInfo `json:"openidInfo"`
+	AccessToken  string            `json:"accessToken"`
+	RefreshToken string            `json:"refreshToken"`
 }
 
 // Valid claims verification
@@ -67,7 +67,7 @@ func (a *JWTAccessGenerate) SetJWTAccessGenerate(kid string, key []byte, meth ..
 // }
 
 // NOTE Token based on the UUID generated token
-func (a *JWTAccessGenerate) TokenOpenid(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, ui oauth2.UserInfo) (string, string, error) {
+func (a *JWTAccessGenerate) TokenOpenid(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, ui oauth2.OpenidInfo) (string, string, error) {
 
 	claims := &JWTAccessClaims{
 		StandardClaims: jwt.StandardClaims{

@@ -595,13 +595,13 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 
 	// s.Manager.SetJWTAccessGenerate("keyID", []byte("keySecret"), "HS256")
 	s.Manager.SetJWTAccessGenerate(keyID, []byte(secretKey), encoding)
-	at, rt, err := s.Manager.TokenOpenid(ctx, ti, true, oauth2.UserInfo(data))
+	at, rt, err := s.Manager.TokenOpenid(ctx, ti, true, oauth2.OpenidInfo(data))
 	if err != nil {
 		return nil, errors.ErrServerError
 	}
 
-	log.Println("Server.go create openID at token : ", at)
-	log.Println("Server.go create openID rt token : ", rt)
+	// log.Println("Server.go create openID at token : ", at)
+	// log.Println("Server.go create openID rt token : ", rt)
 
 	// test validateOpenidToken
 	isAtValide := s.Manager.ValidOpenidToken(ctx, "invalidSecret", at)
@@ -614,10 +614,26 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 
 // TODO implement the refresh openid token logic
 func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	log.Println("=================== alllo =======================")
 
-	// _, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
+	_, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
+	log.Println("RefreshOpenidToken see the keyID: ", keyID)
+	log.Println("RefreshOpenidToken see the secretKeyID: ", secretKey)
+	log.Println("RefreshOpenidToken see the keyID: ", encoding)
 
-	// valid the refreshJWT if ok refresh jwt + accessToken, if not ok return err
+	accessJWToken := r.Header.Get("Access-Token")
+	refreshJWToken := r.Header.Get("Refresh-Token")
+	log.Println("RefreshOpenidToken see the accessJWToken: ", accessJWToken)
+	log.Println("RefreshOpenidToken see the refreshJWToken: ", refreshJWToken)
+
+	// TODO
+	// if both jwt token invalid return err
+	// if accessJWToken valid and not expire refresh
+	// if accessJWToken expire and but refresh not expired refresh
+	// get the accessToken and refreshToken from jwt
+	// refresh them(so delete the old one in db) and save them in db
+	// then re-create a openID jwt token
+	// return the openID jwt
 
 	return nil
 }
