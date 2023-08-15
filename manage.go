@@ -7,29 +7,6 @@ import (
 	"time"
 )
 
-// type UserInfoStorage struct {
-// 	Name   string `json:"name"`
-// 	Email  string `json:"email"`
-// 	Role   string `json:"role"`
-// 	UserID string `json:"userid"`
-// }
-//
-// func (uis UserInfoStorage) GetName() string {
-// 	return uis.Name
-// }
-//
-// func (uis UserInfoStorage) GetEmail() string {
-// 	return uis.Email
-// }
-//
-// func (uis UserInfoStorage) GetRole() string {
-// 	return uis.Role
-// }
-//
-// func (uis UserInfoStorage) GetUserID() string {
-// 	return uis.UserID
-// }
-
 // TokenGenerateRequest provide to generate the token request parameters
 type TokenGenerateRequest struct {
 	ClientID            string
@@ -72,9 +49,15 @@ type Manager interface {
 	// according to the refresh token for corresponding token information
 	LoadRefreshToken(ctx context.Context, refresh string) (ti TokenInfo, err error)
 
-	TokenOpenid(ctx context.Context, ti TokenInfo, isGenRefresh bool, oInfo OpenidInfo) (string, string, error)
+	GenerateOpenidJWToken(ctx context.Context, ti TokenInfo, isGenRefresh bool, oInfo OpenidInfo) (string, string, error)
+
+	RefreshOpenidJWToken(ctx context.Context, secret, token string) (string, string, error)
 
 	SetJWTAccessGenerate(keyID string, secretKey []byte, signInMethod ...string)
 
-	ValidOpenidToken(ctx context.Context, secretKey, token string) bool
+	ValidOpenidJWToken(ctx context.Context, secretKey, token string) error
+
+	GetOauthTokensFromOpenidJWToken(ctx context.Context, secretKey, token string) (OpenidInfo, string, string, error)
+
+	RefreshTokens(ctx context.Context, refresh string) (TokenInfo, error)
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	// "errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -435,8 +436,7 @@ func (s *Server) CheckGrantType(gt oauth2.GrantType) bool {
 }
 
 // GetAccessToken access token
-func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo,
-	error) {
+func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
 	if allowed := s.CheckGrantType(gt); !allowed {
 		return nil, errors.ErrUnauthorizedClient
 	}
@@ -481,6 +481,7 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 				return nil, errors.ErrInvalidScope
 			}
 		}
+		// NOTE go here..........
 		return s.Manager.GenerateAccessToken(ctx, gt, tgr)
 	case oauth2.Refreshing:
 
@@ -595,7 +596,7 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 
 	// s.Manager.SetJWTAccessGenerate("keyID", []byte("keySecret"), "HS256")
 	s.Manager.SetJWTAccessGenerate(keyID, []byte(secretKey), encoding)
-	at, rt, err := s.Manager.TokenOpenid(ctx, ti, true, oauth2.OpenidInfo(data))
+	at, rt, err := s.Manager.GenerateOpenidJWToken(ctx, ti, true, oauth2.OpenidInfo(data))
 	if err != nil {
 		return nil, errors.ErrServerError
 	}
@@ -604,8 +605,8 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 	// log.Println("Server.go create openID rt token : ", rt)
 
 	// test validateOpenidToken
-	isAtValide := s.Manager.ValidOpenidToken(ctx, "invalidSecret", at)
-	isRtValide := s.Manager.ValidOpenidToken(ctx, secretKey, rt)
+	isAtValide := s.Manager.ValidOpenidJWToken(ctx, "invalidSecret", at)
+	isRtValide := s.Manager.ValidOpenidJWToken(ctx, secretKey, rt)
 	log.Println("Is at valide: ", isAtValide)
 	log.Println("Is rt valide: ", isRtValide)
 
@@ -616,6 +617,8 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	log.Println("=================== alllo =======================")
 
+	log.Println("In RefreshOpenidRequest see the r: ", r)
+
 	_, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
 	log.Println("RefreshOpenidToken see the keyID: ", keyID)
 	log.Println("RefreshOpenidToken see the secretKeyID: ", secretKey)
@@ -623,20 +626,113 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 
 	accessJWToken := r.Header.Get("Access-Token")
 	refreshJWToken := r.Header.Get("Refresh-Token")
+	// code := r.Header.Get("X-Code")
 	log.Println("RefreshOpenidToken see the accessJWToken: ", accessJWToken)
 	log.Println("RefreshOpenidToken see the refreshJWToken: ", refreshJWToken)
+	// log.Println("RefreshOpenidToken see the code: ", code)
+	// TODO extract the code
+	// {"code":"NTDJYMIYZTITNMRIMI0ZZWYXLTG2NTMTMDM2NDU5MJRJNTBH"}
 
-	// TODO
-	// if both jwt token invalid return err
-	// if accessJWToken valid and not expire refresh
-	// if accessJWToken expire and but refresh not expired refresh
-	// get the accessToken and refreshToken from jwt
-	// refresh them(so delete the old one in db) and save them in db
-	// then re-create a openID jwt token
-	// return the openID jwt
+	// tt := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
 
-	return nil
+	// if accessJWToken is invalid return but if expired continue
+	err := s.Manager.ValidOpenidJWToken(ctx, secretKey, accessJWToken)
+	log.Println("grrr: ", err)
+	if err != nil && err.Error() == "invalid jwt token" {
+		log.Println("invalid jwt: ", err.Error())
+		return err
+	}
+
+	// if refreshJWToken is invalid return, if expired return
+	err = s.Manager.ValidOpenidJWToken(ctx, secretKey, refreshJWToken)
+	log.Println("grrr: ", err)
+	// in case of token invalid or token expired return
+	// if err != nil && err.Error() == "invalid jwt token" {
+	// if err != nil && err.Error() == "expired jwt token" {
+	if err != nil {
+		log.Println("error refreshJWToken: ", err.Error())
+		return err
+	} else {
+
+		// get the accessToken and refreshToken from jwt
+		// data, at, rt, err := s.Manager.GetOauthTokensFromOpenidJWToken(ctx, secretKey, refreshJWToken)
+		data, at, rt, err := s.Manager.GetOauthTokensFromOpenidJWToken(ctx, secretKey, refreshJWToken)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("see the at: ", at)
+		fmt.Println("see the rt: ", rt)
+		fmt.Println("see the data: ", data)
+
+		// err != nil means rt does not exist in db
+		ti, err := s.Manager.RefreshTokens(ctx, rt)
+		if err != nil {
+			return err
+		}
+		// use this ti to create new JWT
+		log.Println("see ti getClientID: ", ti.GetClientID())
+		log.Println("see ti geUserID: ", ti.GetUserID())
+		// TODO ack the CreatedAt to now. like so the expiresIn refer to now()
+		// or delete then re-create the accessTk, basicTk and RefreshTk as well... ???
+		log.Println("see ti getAccessCreatedAT before: ", ti.GetAccessCreateAt())
+		ti.SetAccessCreateAt(time.Now())
+		log.Println("see ti getAccessCreatedAT after: ", ti.GetAccessCreateAt())
+		log.Println("see ti GetAccessExpiresIn: ", ti.GetAccessExpiresIn())
+		log.Println("see ti GetRefreshExpiresIn: ", ti.GetRefreshExpiresIn())
+		log.Println("see ti getAccess: ", ti.GetAccess())
+		log.Println("see ti GetRefresh: ", ti.GetRefresh())
+		log.Println("see ti SeeScope: ", ti.GetScope())
+
+		// NOTE  TODO !!!!! WHAT APPEND IF TWO SERVICES CALL AT THE SAME TIME
+		// set lock{} ????
+		// ideal would be s.Manager.SetJWTAccessGenerate return an instance/object
+		// which I could use to generate the JWT
+		s.Manager.SetJWTAccessGenerate(keyID, []byte(secretKey), encoding)
+		atJWT, rtJWT, err := s.Manager.GenerateOpenidJWToken(ctx, ti, true, data)
+		if err != nil {
+			return errors.ErrServerError
+		}
+
+		log.Println("the at jwt: ", atJWT)
+		log.Println("the rt jwt: ", rtJWT)
+
+		tokenData, err := s.GetJWTokenData(ti, atJWT, rtJWT), nil
+		// map[string]interface{}
+
+		return s.token(w, tokenData, nil, http.StatusOK)
+
+		// TODO returns refreshed tokens
+
+	}
+
 }
+
+// // HandleTokenRequest token request handling
+// func (s *Server) refreshTokens(w http.ResponseWriter, r *http.Request) (oauth2.TokenInfo, error) {
+// 	ctx := r.Context()
+//
+// 	log.Println("server.go refreshToken see r: ", r)
+//
+// 	gt, tgr, err := s.ValidationTokenRequest(r)
+// 	if err != nil {
+// 		return nil, s.tokenError(w, err)
+// 	}
+//
+// 	log.Println("server.go refreshToken see gt: ", gt)
+//
+// 	log.Println("server.go refreshToken see tgr: ", tgr)
+//
+// 	// // in GetAccessToken, the tokens(access and refresh) are created and saved in db
+// 	// // NOTE this fail when refresh
+// 	// ti, err := s.GetAccessToken(ctx, gt, tgr)
+// 	// if err != nil {
+// 	// 	return nil, s.tokenError(w, err)
+// 	// }
+//
+// 	// NOTE in case of token, that should return the tokens
+// 	return ti, nil
+// }
 
 // HandleTokenRequest token request handling
 func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) error {

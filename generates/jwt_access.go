@@ -5,7 +5,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	// "reflect"
-	// "log"
+
+	// "fmt"
 	"strings"
 	"time"
 
@@ -26,6 +27,7 @@ type JWTAccessClaims struct {
 // Valid claims verification
 func (a *JWTAccessClaims) Valid() error {
 	if time.Unix(a.ExpiresAt, 0).Before(time.Now()) {
+		// if a.ExpiresAt < oneMonthAgo {
 		return errors.ErrInvalidAccessToken
 	}
 	return nil
@@ -44,8 +46,9 @@ func NewDefaultJWTAccessGenerate() *JWTAccessGenerate {
 }
 
 func (a *JWTAccessGenerate) SetJWTAccessGenerate(kid string, key []byte, meth ...string) {
+	// NOTE refresh token with other methods are not implemented so stick on that first
 	method := getSignInMethod(meth[0])
-	if len(meth) == 0 || method == nil {
+	if len(meth) == 0 || method == nil || meth[0][:2] != "HS" {
 		method = jwt.SigningMethodHS256
 	}
 	a.SignedKeyID = kid
@@ -67,13 +70,14 @@ func (a *JWTAccessGenerate) SetJWTAccessGenerate(kid string, key []byte, meth ..
 // }
 
 // NOTE Token based on the UUID generated token
-func (a *JWTAccessGenerate) TokenOpenid(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, ui oauth2.OpenidInfo) (string, string, error) {
+func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, ui oauth2.OpenidInfo) (string, string, error) {
 
 	claims := &JWTAccessClaims{
 		StandardClaims: jwt.StandardClaims{
 			Audience:  ti.GetClientID(),
 			Subject:   ti.GetUserID(),
 			ExpiresAt: ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix(),
+			// ExpiresAt: time.Now().Unix(),
 		},
 		UserInfo:     ui,
 		AccessToken:  ti.GetAccess(),
@@ -134,39 +138,61 @@ func (a *JWTAccessGenerate) TokenOpenid(ctx context.Context, ti oauth2.TokenInfo
 
 // TODO implement refresh jwtOpenidToken or isGenRferesh already do it ?
 
-func (a *JWTAccessGenerate) ValidOpenidToken(ctx context.Context, secret, tokenString string) bool {
+func (a *JWTAccessGenerate) RefreshOpenidJWToken(ctx context.Context, secret, JWToken string) (string, string, error) {
+	return "", "", nil
+}
+
+func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context, secret, tokenString string) (oauth2.OpenidInfo, string, string, error) {
+
+	var token *jwt.Token
 	if a.isHs() {
 		var secretKey = []byte(secret)
-
-		// Parse the token
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			// Return the secret key for verification
+		var err error
+		token, err = jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			return secretKey, nil
 		})
 		if err != nil {
-			// Handle parsing error
+			return nil, "", "", err
 		}
+		fmt.Println(token)
+	} else {
+		return nil, "", "", errors.ErrAccessDenied
+	}
 
-		// Check if the token is valid
-		if token.Valid {
-			// Token is valid, proceed with using the token claims
+	claims := token.Claims.(jwt.MapClaims)
+
+	return oauth2.OpenidInfo(claims["openidInfo"].(map[string]interface{})), claims["accessToken"].(string), claims["refreshToken"].(string), nil
+}
+
+// TODO that works only for token of type HS, implement others
+func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, secret, tokenString string) error {
+	if a.isHs() {
+		var secretKey = []byte(secret)
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			claims := token.Claims.(jwt.MapClaims)
-			fmt.Println("See Token name: ", claims["Name"])
-
-			// validate expire date
 			err := claims.Valid()
 			if err != nil {
-				return false
+				return nil, errors.ErrExpiredJWToken
 			}
 
-			return true
-			// Access claims using claims["key"] or type assertion based on your custom claims
+			return secretKey, nil
+		})
+		if err != nil {
+			if err.Error() == "token contains an invalid number of segments" ||
+				err.Error() == "signature is invalid" {
+				return errors.ErrInvalidJWToken
+			}
+			return err
+		}
+
+		if token.Valid {
+			return nil
 		} else {
-			return false
-			// Token is invalid
+			return errors.ErrInvalidJWToken
 		}
 	}
-	return false
+	return errors.ErrInvalidJWToken
 }
 
 func (a *JWTAccessGenerate) isEs() bool {

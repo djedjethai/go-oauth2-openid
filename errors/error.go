@@ -16,4 +16,6 @@ var (
 	ErrMissingCodeVerifier  = errors.New("missing code verifier")
 	ErrMissingCodeChallenge = errors.New("missing code challenge")
 	ErrInvalidCodeChallenge = errors.New("invalid code challenge")
+	ErrInvalidJWToken       = errors.New("invalid jwt token")
+	ErrExpiredJWToken       = errors.New("expired jwt token")
 )
