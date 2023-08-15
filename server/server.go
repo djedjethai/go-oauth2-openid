@@ -238,12 +238,8 @@ func (s *Server) ValidationAuthorizeRequest(r *http.Request) (*AuthorizeRequest,
 // GetAuthorizeToken get authorization token(code)
 func (s *Server) GetAuthorizeToken(ctx context.Context, req *AuthorizeRequest) (oauth2.TokenInfo, error) {
 
-	log.Println("server.go GetAuthorizeToken....")
-
 	// check the client allows the grant type
 	if fn := s.ClientAuthorizedHandler; fn != nil {
-
-		log.Println("server.go GetAuthorizeToken in ClientAuthorizedHandler")
 
 		gt := oauth2.AuthorizationCode
 		if req.ResponseType == oauth2.Token {
@@ -269,8 +265,6 @@ func (s *Server) GetAuthorizeToken(ctx context.Context, req *AuthorizeRequest) (
 
 	// check the client allows the authorized scope
 	if fn := s.ClientScopeHandler; fn != nil {
-
-		log.Println("server.go GetAuthorizeToken in ClientScopeHandler")
 
 		allowed, err := fn(tgr)
 		if err != nil {
@@ -299,15 +293,12 @@ func (s *Server) GetAuthorizeData(rt oauth2.ResponseType, ti oauth2.TokenInfo) m
 // HandleAuthorizeRequest the authorization request handling
 func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) error {
 
-	log.Println("server.go HandleAuthorizeRequest.....")
 	ctx := r.Context()
 
 	req, err := s.ValidationAuthorizeRequest(r)
 	if err != nil {
 		return s.handleError(w, req, err)
 	}
-
-	log.Println("server.go HandleAuthorizeRequest.....2")
 
 	// NOTE when frontend connect(without user cred) flow stop here
 	// user authorization
@@ -318,8 +309,6 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 		return nil
 	}
 
-	log.Println("server.go HandleAuthorizeRequest....3")
-
 	req.UserID = userID
 
 	// specify the scope of authorization
@@ -328,7 +317,6 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 		if err != nil {
 			return err
 		} else if scope != "" {
-			log.Println("server.go AuthorizeScopeHandler: ", scope)
 			req.Scope = scope
 		}
 	}
@@ -346,8 +334,6 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return s.handleError(w, req, err)
 	}
-
-	log.Println("server.go HandleAuthorizeRequest See the authorize token ti: ", ti)
 
 	// If the redirect URI is empty, the default domain provided by the client is used.
 	if req.RedirectURI == "" {
@@ -373,8 +359,6 @@ func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oau
 		return "", nil, errors.ErrUnsupportedGrantType
 	}
 
-	log.Println("see the GrantType: ", gt)
-
 	clientID, clientSecret, err := s.ClientInfoHandler(r)
 	if err != nil {
 		return "", nil, err
@@ -388,7 +372,6 @@ func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oau
 
 	switch gt {
 	case oauth2.AuthorizationCode:
-		log.Println("In GrantType Authorization........")
 		tgr.RedirectURI = r.FormValue("redirect_uri")
 		tgr.Code = r.FormValue("code")
 		if tgr.RedirectURI == "" ||
@@ -453,8 +436,6 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 	switch gt {
 	case oauth2.AuthorizationCode:
 
-		log.Println("server.go GetAccessToken oauth2.AuthorizationCode: ", gt, " - ", tgr)
-
 		ti, err := s.Manager.GenerateAccessToken(ctx, gt, tgr)
 		if err != nil {
 
@@ -467,11 +448,8 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 				return nil, err
 			}
 		}
-		log.Println("see the ti in AuthorizationCode: ", ti)
 		return ti, nil
 	case oauth2.PasswordCredentials, oauth2.ClientCredentials:
-
-		log.Println("server.go GetAccessToken oauth2.PasswordCredentials: ", gt, " - ", tgr)
 
 		if fn := s.ClientScopeHandler; fn != nil {
 			allowed, err := fn(tgr)
@@ -484,8 +462,6 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 		// NOTE go here..........
 		return s.Manager.GenerateAccessToken(ctx, gt, tgr)
 	case oauth2.Refreshing:
-
-		log.Println("server.go GetAccessToken oauth2.Refreshing: ", gt, " - ", tgr)
 
 		// check scope
 		if scopeFn := s.RefreshingScopeHandler; tgr.Scope != "" && scopeFn != nil {
@@ -590,13 +566,14 @@ func (s *Server) GetJWTokenData(ti oauth2.TokenInfo, token, refreshToken string)
 	return data
 }
 
+// HandleOpenidRequest handle the creation of the jwtokens and return them
 func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, ti oauth2.TokenInfo) (map[string]interface{}, error) {
 
 	data, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
 
 	// s.Manager.SetJWTAccessGenerate("keyID", []byte("keySecret"), "HS256")
-	s.Manager.SetJWTAccessGenerate(keyID, []byte(secretKey), encoding)
-	at, rt, err := s.Manager.GenerateOpenidJWToken(ctx, ti, true, oauth2.OpenidInfo(data))
+	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
+	at, rt, err := jwtAG.GenerateOpenidJWToken(ctx, ti, true, oauth2.OpenidInfo(data))
 	if err != nil {
 		return nil, errors.ErrServerError
 	}
@@ -605,149 +582,74 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 	// log.Println("Server.go create openID rt token : ", rt)
 
 	// test validateOpenidToken
-	isAtValide := s.Manager.ValidOpenidJWToken(ctx, "invalidSecret", at)
-	isRtValide := s.Manager.ValidOpenidJWToken(ctx, secretKey, rt)
+	// TODO delete that just for test
+	isAtValide := jwtAG.ValidOpenidJWToken(ctx, at)
 	log.Println("Is at valide: ", isAtValide)
-	log.Println("Is rt valide: ", isRtValide)
 
 	return s.GetJWTokenData(ti, at, rt), nil
 }
 
-// TODO implement the refresh openid token logic
+// RefreshOpenidToken valid and refresh(if not expire) the jwtokens
 func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	log.Println("=================== alllo =======================")
-
-	log.Println("In RefreshOpenidRequest see the r: ", r)
 
 	_, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
-	log.Println("RefreshOpenidToken see the keyID: ", keyID)
-	log.Println("RefreshOpenidToken see the secretKeyID: ", secretKey)
-	log.Println("RefreshOpenidToken see the keyID: ", encoding)
+	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
 
 	accessJWToken := r.Header.Get("Access-Token")
 	refreshJWToken := r.Header.Get("Refresh-Token")
-	// code := r.Header.Get("X-Code")
 	log.Println("RefreshOpenidToken see the accessJWToken: ", accessJWToken)
 	log.Println("RefreshOpenidToken see the refreshJWToken: ", refreshJWToken)
-	// log.Println("RefreshOpenidToken see the code: ", code)
-	// TODO extract the code
-	// {"code":"NTDJYMIYZTITNMRIMI0ZZWYXLTG2NTMTMDM2NDU5MJRJNTBH"}
-
-	// tt := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
 
 	// if accessJWToken is invalid return but if expired continue
-	err := s.Manager.ValidOpenidJWToken(ctx, secretKey, accessJWToken)
-	log.Println("grrr: ", err)
+	err := jwtAG.ValidOpenidJWToken(ctx, accessJWToken)
 	if err != nil && err.Error() == "invalid jwt token" {
-		log.Println("invalid jwt: ", err.Error())
 		return err
 	}
 
 	// if refreshJWToken is invalid return, if expired return
-	err = s.Manager.ValidOpenidJWToken(ctx, secretKey, refreshJWToken)
-	log.Println("grrr: ", err)
-	// in case of token invalid or token expired return
-	// if err != nil && err.Error() == "invalid jwt token" {
-	// if err != nil && err.Error() == "expired jwt token" {
+	err = jwtAG.ValidOpenidJWToken(ctx, refreshJWToken)
 	if err != nil {
-		log.Println("error refreshJWToken: ", err.Error())
 		return err
 	} else {
 
-		// get the accessToken and refreshToken from jwt
-		// data, at, rt, err := s.Manager.GetOauthTokensFromOpenidJWToken(ctx, secretKey, refreshJWToken)
-		data, at, rt, err := s.Manager.GetOauthTokensFromOpenidJWToken(ctx, secretKey, refreshJWToken)
+		// get the refresh token
+		data, _, rt, err := jwtAG.GetOauthTokensFromOpenidJWToken(ctx, refreshJWToken)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println("see the at: ", at)
-		fmt.Println("see the rt: ", rt)
-		fmt.Println("see the data: ", data)
-
-		// err != nil means rt does not exist in db
+		// get tokenInfo data matching the rt
 		ti, err := s.Manager.RefreshTokens(ctx, rt)
 		if err != nil {
 			return err
 		}
-		// use this ti to create new JWT
-		log.Println("see ti getClientID: ", ti.GetClientID())
-		log.Println("see ti geUserID: ", ti.GetUserID())
-		// TODO ack the CreatedAt to now. like so the expiresIn refer to now()
-		// or delete then re-create the accessTk, basicTk and RefreshTk as well... ???
-		log.Println("see ti getAccessCreatedAT before: ", ti.GetAccessCreateAt())
-		ti.SetAccessCreateAt(time.Now())
-		log.Println("see ti getAccessCreatedAT after: ", ti.GetAccessCreateAt())
-		log.Println("see ti GetAccessExpiresIn: ", ti.GetAccessExpiresIn())
-		log.Println("see ti GetRefreshExpiresIn: ", ti.GetRefreshExpiresIn())
-		log.Println("see ti getAccess: ", ti.GetAccess())
-		log.Println("see ti GetRefresh: ", ti.GetRefresh())
-		log.Println("see ti SeeScope: ", ti.GetScope())
 
-		// NOTE  TODO !!!!! WHAT APPEND IF TWO SERVICES CALL AT THE SAME TIME
-		// set lock{} ????
-		// ideal would be s.Manager.SetJWTAccessGenerate return an instance/object
-		// which I could use to generate the JWT
-		s.Manager.SetJWTAccessGenerate(keyID, []byte(secretKey), encoding)
-		atJWT, rtJWT, err := s.Manager.GenerateOpenidJWToken(ctx, ti, true, data)
+		// set the ti created time to now()
+		ti.SetAccessCreateAt(time.Now())
+
+		atJWT, rtJWT, err := jwtAG.GenerateOpenidJWToken(ctx, ti, true, data)
 		if err != nil {
 			return errors.ErrServerError
 		}
 
-		log.Println("the at jwt: ", atJWT)
-		log.Println("the rt jwt: ", rtJWT)
-
 		tokenData, err := s.GetJWTokenData(ti, atJWT, rtJWT), nil
-		// map[string]interface{}
+		if err != nil {
+			return errors.ErrServerError
+		}
 
 		return s.token(w, tokenData, nil, http.StatusOK)
-
-		// TODO returns refreshed tokens
-
 	}
 
 }
-
-// // HandleTokenRequest token request handling
-// func (s *Server) refreshTokens(w http.ResponseWriter, r *http.Request) (oauth2.TokenInfo, error) {
-// 	ctx := r.Context()
-//
-// 	log.Println("server.go refreshToken see r: ", r)
-//
-// 	gt, tgr, err := s.ValidationTokenRequest(r)
-// 	if err != nil {
-// 		return nil, s.tokenError(w, err)
-// 	}
-//
-// 	log.Println("server.go refreshToken see gt: ", gt)
-//
-// 	log.Println("server.go refreshToken see tgr: ", tgr)
-//
-// 	// // in GetAccessToken, the tokens(access and refresh) are created and saved in db
-// 	// // NOTE this fail when refresh
-// 	// ti, err := s.GetAccessToken(ctx, gt, tgr)
-// 	// if err != nil {
-// 	// 	return nil, s.tokenError(w, err)
-// 	// }
-//
-// 	// NOTE in case of token, that should return the tokens
-// 	return ti, nil
-// }
 
 // HandleTokenRequest token request handling
 func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
-	log.Println("server.go HandleTokenRequest see r: ", r)
-
 	gt, tgr, err := s.ValidationTokenRequest(r)
 	if err != nil {
 		return s.tokenError(w, err)
 	}
-
-	log.Println("server.go HandleTokenRequest see gt: ", gt)
-
-	log.Println("server.go HandleTokenRequest see tgr: ", tgr)
 
 	ti, err := s.GetAccessToken(ctx, gt, tgr)
 	if err != nil {

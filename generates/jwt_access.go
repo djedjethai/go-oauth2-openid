@@ -35,9 +35,9 @@ func (a *JWTAccessClaims) Valid() error {
 
 // JWTAccessGenerate generate the jwt access token
 type JWTAccessGenerate struct {
-	SignedKeyID  string // identifiant refering to the SignedKey
-	SignedKey    []byte // secret key
-	SignedMethod jwt.SigningMethod
+	signedKeyID  string // identifiant refering to the SignedKey
+	signedKey    []byte // secret key
+	signedMethod jwt.SigningMethod
 }
 
 func NewDefaultJWTAccessGenerate() *JWTAccessGenerate {
@@ -45,29 +45,19 @@ func NewDefaultJWTAccessGenerate() *JWTAccessGenerate {
 
 }
 
-func (a *JWTAccessGenerate) SetJWTAccessGenerate(kid string, key []byte, meth ...string) {
+func (a *JWTAccessGenerate) CreateJWTAccessGenerate(kid string, key []byte, meth ...string) oauth2.JWTAccessGenerate {
 	// NOTE refresh token with other methods are not implemented so stick on that first
+	na := &JWTAccessGenerate{}
+
 	method := getSignInMethod(meth[0])
 	if len(meth) == 0 || method == nil || meth[0][:2] != "HS" {
 		method = jwt.SigningMethodHS256
 	}
-	a.SignedKeyID = kid
-	a.SignedKey = key
-	a.SignedMethod = method
+	na.signedKeyID = kid
+	na.signedKey = key
+	na.signedMethod = method
+	return na
 }
-
-// // NewJWTAccessGenerate create to generate the jwt access token instance
-// func NewJWTAccessGenerate(kid string, key []byte, meth ...string) *JWTAccessGenerate {
-// 	method := getSignInMethod(meth[0])
-// 	if len(meth) == 0 || method == nil {
-// 		method = jwt.SigningMethodHS256
-// 	}
-// 	return &JWTAccessGenerate{
-// 		SignedKeyID:  kid,
-// 		SignedKey:    key,
-// 		SignedMethod: method,
-// 	}
-// }
 
 // NOTE Token based on the UUID generated token
 func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, ui oauth2.OpenidInfo) (string, string, error) {
@@ -84,27 +74,27 @@ func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2
 		RefreshToken: ti.GetRefresh(),
 	}
 
-	token := jwt.NewWithClaims(a.SignedMethod, claims)
-	if a.SignedKeyID != "" {
-		token.Header["kid"] = a.SignedKeyID
+	token := jwt.NewWithClaims(a.signedMethod, claims)
+	if a.signedKeyID != "" {
+		token.Header["kid"] = a.signedKeyID
 	}
 	var key interface{}
 	if a.isEs() {
-		v, err := jwt.ParseECPrivateKeyFromPEM(a.SignedKey)
+		v, err := jwt.ParseECPrivateKeyFromPEM(a.signedKey)
 		if err != nil {
 			return "", "", err
 		}
 		key = v
 	} else if a.isRsOrPS() {
-		v, err := jwt.ParseRSAPrivateKeyFromPEM(a.SignedKey)
+		v, err := jwt.ParseRSAPrivateKeyFromPEM(a.signedKey)
 		if err != nil {
 			return "", "", err
 		}
 		key = v
 	} else if a.isHs() {
-		key = a.SignedKey
+		key = a.signedKey
 	} else if a.isEd() {
-		v, err := jwt.ParseEdPrivateKeyFromPEM(a.SignedKey)
+		v, err := jwt.ParseEdPrivateKeyFromPEM(a.signedKey)
 		if err != nil {
 			return "", "", err
 		}
@@ -122,9 +112,9 @@ func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2
 	// generate a refresh JWT
 	if isGenRefresh {
 		claims.StandardClaims.ExpiresAt = ti.GetAccessCreateAt().Add(ti.GetRefreshExpiresIn()).Unix()
-		token = jwt.NewWithClaims(a.SignedMethod, claims)
-		if a.SignedKeyID != "" {
-			token.Header["kid"] = a.SignedKeyID
+		token = jwt.NewWithClaims(a.signedMethod, claims)
+		if a.signedKeyID != "" {
+			token.Header["kid"] = a.signedKeyID
 		}
 
 		refresh, err = token.SignedString(key)
@@ -136,17 +126,11 @@ func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2
 	return access, refresh, nil
 }
 
-// TODO implement refresh jwtOpenidToken or isGenRferesh already do it ?
-
-func (a *JWTAccessGenerate) RefreshOpenidJWToken(ctx context.Context, secret, JWToken string) (string, string, error) {
-	return "", "", nil
-}
-
-func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context, secret, tokenString string) (oauth2.OpenidInfo, string, string, error) {
+func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context, tokenString string) (oauth2.OpenidInfo, string, string, error) {
 
 	var token *jwt.Token
 	if a.isHs() {
-		var secretKey = []byte(secret)
+		var secretKey = a.signedKey
 		var err error
 		token, err = jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			return secretKey, nil
@@ -165,9 +149,9 @@ func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context,
 }
 
 // TODO that works only for token of type HS, implement others
-func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, secret, tokenString string) error {
+func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, tokenString string) error {
 	if a.isHs() {
-		var secretKey = []byte(secret)
+		var secretKey = a.signedKey
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			claims := token.Claims.(jwt.MapClaims)
@@ -196,21 +180,21 @@ func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, secret, toke
 }
 
 func (a *JWTAccessGenerate) isEs() bool {
-	return strings.HasPrefix(a.SignedMethod.Alg(), "ES")
+	return strings.HasPrefix(a.signedMethod.Alg(), "ES")
 }
 
 func (a *JWTAccessGenerate) isRsOrPS() bool {
-	isRs := strings.HasPrefix(a.SignedMethod.Alg(), "RS")
-	isPs := strings.HasPrefix(a.SignedMethod.Alg(), "PS")
+	isRs := strings.HasPrefix(a.signedMethod.Alg(), "RS")
+	isPs := strings.HasPrefix(a.signedMethod.Alg(), "PS")
 	return isRs || isPs
 }
 
 func (a *JWTAccessGenerate) isHs() bool {
-	return strings.HasPrefix(a.SignedMethod.Alg(), "HS")
+	return strings.HasPrefix(a.signedMethod.Alg(), "HS")
 }
 
 func (a *JWTAccessGenerate) isEd() bool {
-	return strings.HasPrefix(a.SignedMethod.Alg(), "Ed")
+	return strings.HasPrefix(a.signedMethod.Alg(), "Ed")
 }
 
 // Token based on the UUID generated token
@@ -223,27 +207,27 @@ func (a *JWTAccessGenerate) Token(ctx context.Context, data *oauth2.GenerateBasi
 		},
 	}
 
-	token := jwt.NewWithClaims(a.SignedMethod, claims)
-	if a.SignedKeyID != "" {
-		token.Header["kid"] = a.SignedKeyID
+	token := jwt.NewWithClaims(a.signedMethod, claims)
+	if a.signedKeyID != "" {
+		token.Header["kid"] = a.signedKeyID
 	}
 	var key interface{}
 	if a.isEs() {
-		v, err := jwt.ParseECPrivateKeyFromPEM(a.SignedKey)
+		v, err := jwt.ParseECPrivateKeyFromPEM(a.signedKey)
 		if err != nil {
 			return "", "", err
 		}
 		key = v
 	} else if a.isRsOrPS() {
-		v, err := jwt.ParseRSAPrivateKeyFromPEM(a.SignedKey)
+		v, err := jwt.ParseRSAPrivateKeyFromPEM(a.signedKey)
 		if err != nil {
 			return "", "", err
 		}
 		key = v
 	} else if a.isHs() {
-		key = a.SignedKey
+		key = a.signedKey
 	} else if a.isEd() {
-		v, err := jwt.ParseEdPrivateKeyFromPEM(a.SignedKey)
+		v, err := jwt.ParseEdPrivateKeyFromPEM(a.signedKey)
 		if err != nil {
 			return "", "", err
 		}

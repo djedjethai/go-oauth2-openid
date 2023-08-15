@@ -2,14 +2,12 @@ package manage
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/go-oauth2/oauth2/v4/generates"
 	"github.com/go-oauth2/oauth2/v4/models"
-	// "github.com/golang-jwt/jwt/v4"
 )
 
 // NewDefaultManager create to default authorization management instance
@@ -62,49 +60,23 @@ func (m *Manager) grantConfig(gt oauth2.GrantType) *Config {
 	return &Config{}
 }
 
-// TODO craete UserInfo
-// func (m *Manager) GenerateOpenidJWT(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, uInfo oauth2.UserInfo) (string, string, error) {
-func (m *Manager) GenerateOpenidJWToken(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, oInfo oauth2.OpenidInfo) (string, string, error) {
-	// TODO create a userInfo struct
-
-	// TODO see if m.accessGenerate is not already called
-	return m.jwtAccessGenerate.GenerateOpenidJWToken(ctx, ti, isGenRefresh, oInfo)
-
+// CreateJWTAccessGenerate return a JWTAccessGenerate instance
+func (m *Manager) CreateJWTAccessGenerate(kid string, key []byte, meth ...string) oauth2.JWTAccessGenerate {
+	return m.jwtAccessGenerate.CreateJWTAccessGenerate(kid, key, meth...)
 }
 
-func (m *Manager) SetJWTAccessGenerate(kid string, key []byte, meth ...string) {
-	m.jwtAccessGenerate.SetJWTAccessGenerate(kid, key, meth...)
-}
-func (m *Manager) RefreshOpenidJWToken(ctx context.Context, secretKey, token string) (string, string, error) {
-	return m.RefreshOpenidJWToken(ctx, secretKey, token)
-}
-
-func (m *Manager) ValidOpenidJWToken(ctx context.Context, secretKey, token string) error {
-	return m.jwtAccessGenerate.ValidOpenidJWToken(ctx, secretKey, token)
-}
-
-func (m *Manager) GetOauthTokensFromOpenidJWToken(ctx context.Context, secretKey, token string) (oauth2.OpenidInfo, string, string, error) {
-	return m.jwtAccessGenerate.GetOauthTokensFromOpenidJWToken(ctx, secretKey, token)
-}
-
+// MapJWTAccessGenerate give to the manager an access to the JWTAccessGenerate
 func (m *Manager) MapJWTAccessGenerate(gen oauth2.JWTAccessGenerate) {
 	m.jwtAccessGenerate = gen
 }
 
-//
+// RefreshTokens return TokenInfo linked with the refreshToken
 func (m *Manager) RefreshTokens(ctx context.Context, refresh string) (oauth2.TokenInfo, error) {
 	//get basicID ti from refersh db
 	ti, err := m.tokenStore.GetByRefresh(ctx, refresh)
 	if err != nil {
-		log.Println("manager.go RefreshTokens err: ", err)
 		return nil, err
 	}
-
-	log.Println("manager.go RefreshTokens ti: ", ti)
-
-	// USE the ti info to Generate new AccessToken and refreshTk
-	// then m.GenerateAccessToken(ctx, gt, gtx)
-	// it seems to me that gt and gtx are inside ti..?
 
 	// return the new ti(with refreshed info)
 	return ti, nil
@@ -235,14 +207,12 @@ func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType,
 		}
 
 		tv, err := m.authorizeGenerate.Token(ctx, td)
-		log.Println("manager.go in oauth2.Code, see tv: ", tv)
 
 		if err != nil {
 			return nil, err
 		}
 		ti.SetCode(tv)
 	case oauth2.Token:
-		log.Println("manager.go in oauth2.Token(...................")
 		// set access token expires
 		icfg := m.grantConfig(oauth2.Implicit)
 		aexp := icfg.AccessTokenExp
@@ -277,10 +247,7 @@ func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType,
 
 // get authorization code data
 func (m *Manager) getAuthorizationCode(ctx context.Context, code string) (oauth2.TokenInfo, error) {
-
-	log.Println("in getAuthorizationCode code: ", code)
 	ti, err := m.tokenStore.GetByCode(ctx, code)
-	log.Println("in getAuthorizationCode: ", ti, " - error: ", err)
 	if err != nil {
 		return nil, err
 	} else if ti == nil || ti.GetCode() != code || ti.GetCodeCreateAt().Add(ti.GetCodeExpiresIn()).Before(time.Now()) {
@@ -297,13 +264,9 @@ func (m *Manager) delAuthorizationCode(ctx context.Context, code string) error {
 
 // get and delete authorization code data
 func (m *Manager) getAndDelAuthorizationCode(ctx context.Context, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
-	log.Println("see tgr: ", tgr)
 	code := tgr.Code
 
-	log.Println("see tgr code: ", code)
 	ti, err := m.getAuthorizationCode(ctx, code)
-	log.Println("see ti: ", ti)
-	log.Println("see ti err: ", err)
 	if err != nil {
 		return nil, err
 	} else if ti.GetClientID() != tgr.ClientID {
@@ -314,10 +277,8 @@ func (m *Manager) getAndDelAuthorizationCode(ctx context.Context, tgr *oauth2.To
 
 	err = m.delAuthorizationCode(ctx, code)
 	if err != nil {
-		log.Println("error in delAuthorizationCode: ", err)
 		return nil, err
 	}
-	log.Println("See the ti: ", ti)
 	return ti, nil
 }
 
@@ -345,8 +306,6 @@ func (m *Manager) validateCodeChallenge(ti oauth2.TokenInfo, ver string) error {
 
 // GenerateAccessToken generate the access token
 func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
-	log.Println("manager.go GenerateAccessToken tg:... ", gt)
-	log.Println("manager.go GenerateAccessToken tgr:... ", tgr)
 	cli, err := m.GetClient(ctx, tgr.ClientID)
 	if err != nil {
 		return nil, err
@@ -368,15 +327,11 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 		return nil, errors.ErrInvalidClient
 	}
 
-	log.Println("seee the oauth2.AuthorizationCode: ", oauth2.AuthorizationCode)
-
 	if gt == oauth2.AuthorizationCode {
-		log.Println("grrrrrrrr")
 		ti, err := m.getAndDelAuthorizationCode(ctx, tgr)
 		if err != nil {
 			return nil, err
 		}
-		log.Println("manager.go GenerateAccessToken12:... ")
 		if err := m.validateCodeChallenge(ti, tgr.CodeVerifier); err != nil {
 			return nil, err
 		}
@@ -418,7 +373,6 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 	}
 
 	av, rv, err := m.accessGenerate.Token(ctx, td, gcfg.IsGenerateRefresh)
-	log.Println("manager.go this is the token: ", av)
 	if err != nil {
 		return nil, err
 	}
@@ -428,12 +382,10 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 		ti.SetRefresh(rv)
 	}
 
-	log.Println("manager.go generate access token:.... ", ti)
 	err = m.tokenStore.Create(ctx, ti)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("The token store is not activate look like........")
 
 	return ti, nil
 }
@@ -537,7 +489,6 @@ func (m *Manager) RemoveRefreshToken(ctx context.Context, refresh string) error 
 
 // LoadAccessToken according to the access token for corresponding token information
 func (m *Manager) LoadAccessToken(ctx context.Context, access string) (oauth2.TokenInfo, error) {
-	log.Println("manager.go load by access")
 	if access == "" {
 		return nil, errors.ErrInvalidAccessToken
 	}

@@ -49,15 +49,13 @@ type Manager interface {
 	// according to the refresh token for corresponding token information
 	LoadRefreshToken(ctx context.Context, refresh string) (ti TokenInfo, err error)
 
-	GenerateOpenidJWToken(ctx context.Context, ti TokenInfo, isGenRefresh bool, oInfo OpenidInfo) (string, string, error)
+	// GenerateOpenidJWToken(ctx context.Context, ti TokenInfo, isGenRefresh bool, oInfo OpenidInfo) (string, string, error)
 
-	RefreshOpenidJWToken(ctx context.Context, secret, token string) (string, string, error)
+	CreateJWTAccessGenerate(keyID string, secretKey []byte, signInMethod ...string) JWTAccessGenerate
 
-	SetJWTAccessGenerate(keyID string, secretKey []byte, signInMethod ...string)
+	// ValidOpenidJWToken(ctx context.Context, secretKey, token string) error
 
-	ValidOpenidJWToken(ctx context.Context, secretKey, token string) error
-
-	GetOauthTokensFromOpenidJWToken(ctx context.Context, secretKey, token string) (OpenidInfo, string, string, error)
+	// GetOauthTokensFromOpenidJWToken(ctx context.Context, secretKey, token string) (OpenidInfo, string, string, error)
 
 	RefreshTokens(ctx context.Context, refresh string) (TokenInfo, error)
 }
