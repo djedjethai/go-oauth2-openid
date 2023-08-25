@@ -62,6 +62,10 @@ func (a *JWTAccessGenerate) CreateJWTAccessGenerate(kid string, key []byte, meth
 // NOTE Token based on the UUID generated token
 func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, ui oauth2.OpenidInfo) (string, string, error) {
 
+	if scope := ti.GetScope(); scope != "" {
+		ui["scope"] = scope
+	}
+
 	claims := &JWTAccessClaims{
 		StandardClaims: jwt.StandardClaims{
 			Audience:  ti.GetClientID(),

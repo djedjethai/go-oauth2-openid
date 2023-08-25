@@ -53,6 +53,8 @@ type (
 	ResponseTokenHandler func(w http.ResponseWriter, data map[string]interface{}, header http.Header, statusCode ...int) error
 
 	UserOpenidHandler func(w http.ResponseWriter, r *http.Request) (openidInfo map[string]interface{}, keyID string, secretKey string, encoding string, err error)
+
+	CustomizeTokenPayloadHandler func(r *http.Request, data map[string]interface{}) error
 )
 
 // ClientFormHandler get client data from form

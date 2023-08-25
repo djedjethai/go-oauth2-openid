@@ -2,6 +2,7 @@ package manage
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-oauth2/oauth2/v4"
@@ -167,6 +168,7 @@ func (m *Manager) GetClient(ctx context.Context, clientID string) (cli oauth2.Cl
 
 // GenerateAuthToken generate the authorization token(code)
 func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
+
 	cli, err := m.GetClient(ctx, tgr.ClientID)
 	if err != nil {
 		return nil, err
@@ -212,6 +214,7 @@ func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType,
 			return nil, err
 		}
 		ti.SetCode(tv)
+
 	case oauth2.Token:
 		// set access token expires
 		icfg := m.grantConfig(oauth2.Implicit)
@@ -318,6 +321,8 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 		return nil, errors.ErrInvalidClient
 	}
 	if tgr.RedirectURI != "" {
+		fmt.Println("manager.go - GenerateAccessToken cli.GetDomain: ", cli.GetDomain())
+		fmt.Println("manager.go - GenerateAccessToken tgr.RedirectURI: ", tgr.RedirectURI)
 		if err := m.validateURI(cli.GetDomain(), tgr.RedirectURI); err != nil {
 			return nil, err
 		}

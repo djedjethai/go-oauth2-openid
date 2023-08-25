@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+
 	// "errors"
 	"fmt"
 	"log"
@@ -43,6 +44,8 @@ func NewServer(cfg *Config, manager oauth2.Manager) *Server {
 		return nil, "key", "secretKey", "HS256", errors.ErrAccessDenied
 	}
 
+	srv.CustomizeTokenPayloadHandler = func(r *http.Request, data map[string]interface{}) error { return nil }
+
 	return srv
 }
 
@@ -66,6 +69,7 @@ type Server struct {
 	ResponseTokenHandler         ResponseTokenHandler
 	IsModeAPI                    bool
 	UserOpenidHandler            UserOpenidHandler
+	CustomizeTokenPayloadHandler CustomizeTokenPayloadHandler
 }
 
 func (s *Server) handleError(w http.ResponseWriter, req *AuthorizeRequest, err error) error {
@@ -115,6 +119,7 @@ func (s *Server) token(w http.ResponseWriter, data map[string]interface{}, heade
 	if fn := s.ResponseTokenHandler; fn != nil {
 		return fn(w, data, header, statusCode...)
 	}
+
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
@@ -302,6 +307,7 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 
 	// NOTE when frontend connect(without user cred) flow stop here
 	// user authorization
+
 	userID, err := s.UserAuthorizationHandler(w, r)
 	if err != nil {
 		return s.handleError(w, req, err)
@@ -424,6 +430,8 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 		return nil, errors.ErrUnauthorizedClient
 	}
 
+	fmt.Println("server.go - GetAccessToken .......1")
+
 	if fn := s.ClientAuthorizedHandler; fn != nil {
 		allowed, err := fn(tgr.ClientID, gt)
 		if err != nil {
@@ -433,11 +441,15 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 		}
 	}
 
+	fmt.Println("server.go - GetAccessToken .......2")
+
 	switch gt {
 	case oauth2.AuthorizationCode:
 
+		fmt.Println("server.go - GetAccessToken .......3")
 		ti, err := s.Manager.GenerateAccessToken(ctx, gt, tgr)
 		if err != nil {
+			fmt.Println("server.go - GetAccessToken .......err: ", err)
 
 			switch err {
 			case errors.ErrInvalidAuthorizeCode, errors.ErrInvalidCodeChallenge, errors.ErrMissingCodeChallenge:
@@ -459,7 +471,6 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 				return nil, errors.ErrInvalidScope
 			}
 		}
-		// NOTE go here..........
 		return s.Manager.GenerateAccessToken(ctx, gt, tgr)
 	case oauth2.Refreshing:
 
@@ -505,7 +516,6 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 			return nil, err
 		}
 
-		log.Println("see the refresh ti: ", ti)
 		return ti, nil
 	}
 
@@ -546,10 +556,6 @@ func (s *Server) GetJWTokenData(ti oauth2.TokenInfo, token, refreshToken string)
 		"access_token": token,
 		"token_type":   s.Config.TokenType,
 		"expires_in":   int64(ti.GetAccessExpiresIn() / time.Second),
-	}
-
-	if scope := ti.GetScope(); scope != "" {
-		data["scope"] = scope
 	}
 
 	data["refresh_token"] = refreshToken
@@ -597,8 +603,6 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 
 	accessJWToken := r.Header.Get("Access-Token")
 	refreshJWToken := r.Header.Get("Refresh-Token")
-	log.Println("RefreshOpenidToken see the accessJWToken: ", accessJWToken)
-	log.Println("RefreshOpenidToken see the refreshJWToken: ", refreshJWToken)
 
 	// if accessJWToken is invalid return but if expired continue
 	err := jwtAG.ValidOpenidJWToken(ctx, accessJWToken)
@@ -637,6 +641,12 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 			return errors.ErrServerError
 		}
 
+		// user can finally cutomize the payload
+		err = s.CustomizeTokenPayloadHandler(r, tokenData)
+		if err != nil {
+			return err
+		}
+
 		return s.token(w, tokenData, nil, http.StatusOK)
 	}
 
@@ -665,6 +675,13 @@ func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) erro
 				if err != nil {
 					return s.token(w, nil, nil, http.StatusInternalServerError)
 				}
+
+				// user can finally cutomize the payload
+				err = s.CustomizeTokenPayloadHandler(r, tk)
+				if err != nil {
+					return err
+				}
+
 				return s.token(w, tk, nil)
 			}
 		}

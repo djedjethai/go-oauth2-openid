@@ -99,3 +99,7 @@ func (s *Server) SetResponseTokenHandler(handler ResponseTokenHandler) {
 func (s *Server) SetUserOpenidHandler(handler UserOpenidHandler) {
 	s.UserOpenidHandler = handler
 }
+
+func (s *Server) SetCustomizeTokenPayloadHandler(handler CustomizeTokenPayloadHandler) {
+	s.CustomizeTokenPayloadHandler = handler
+}
