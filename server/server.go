@@ -6,7 +6,7 @@ import (
 
 	// "errors"
 	"fmt"
-	"log"
+	// "log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -44,7 +44,7 @@ func NewServer(cfg *Config, manager oauth2.Manager) *Server {
 		return nil, "key", "secretKey", "HS256", errors.ErrAccessDenied
 	}
 
-	srv.CustomizeTokenPayloadHandler = func(r *http.Request, data map[string]interface{}) error { return nil }
+	srv.CustomizeTokenPayloadHandler = func(r *http.Request, data map[string]interface{}) (error, interface{}) { return nil, "" }
 
 	return srv
 }
@@ -110,12 +110,12 @@ func (s *Server) redirect(w http.ResponseWriter, req *AuthorizeRequest, data map
 	}
 }
 
-func (s *Server) tokenError(w http.ResponseWriter, err error) error {
+func (s *Server) tokenError(w http.ResponseWriter, r *http.Request, err error) error {
 	data, statusCode, header := s.GetErrorData(err)
-	return s.token(w, data, header, statusCode)
+	return s.token(w, r, data, header, statusCode)
 }
 
-func (s *Server) token(w http.ResponseWriter, data map[string]interface{}, header http.Header, statusCode ...int) error {
+func (s *Server) token(w http.ResponseWriter, r *http.Request, data map[string]interface{}, header http.Header, statusCode ...int) error {
 	if fn := s.ResponseTokenHandler; fn != nil {
 		return fn(w, data, header, statusCode...)
 	}
@@ -133,8 +133,16 @@ func (s *Server) token(w http.ResponseWriter, data map[string]interface{}, heade
 		status = statusCode[0]
 	}
 
+	fmt.Println("server.go - token - see the req: ", r)
+	// user can finally cutomize the payload
+	err, pl := s.CustomizeTokenPayloadHandler(r, data)
+	if err != nil {
+		return err
+	}
+
 	w.WriteHeader(status)
-	return json.NewEncoder(w).Encode(data)
+	// return json.NewEncoder(w).Encode(data)
+	return json.NewEncoder(w).Encode(pl)
 }
 
 // SetModeAPI allow the token to be return within the ResponseWriter instead of being redirected
@@ -430,8 +438,6 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 		return nil, errors.ErrUnauthorizedClient
 	}
 
-	fmt.Println("server.go - GetAccessToken .......1")
-
 	if fn := s.ClientAuthorizedHandler; fn != nil {
 		allowed, err := fn(tgr.ClientID, gt)
 		if err != nil {
@@ -441,16 +447,10 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 		}
 	}
 
-	fmt.Println("server.go - GetAccessToken .......2")
-
 	switch gt {
 	case oauth2.AuthorizationCode:
-
-		fmt.Println("server.go - GetAccessToken .......3")
 		ti, err := s.Manager.GenerateAccessToken(ctx, gt, tgr)
 		if err != nil {
-			fmt.Println("server.go - GetAccessToken .......err: ", err)
-
 			switch err {
 			case errors.ErrInvalidAuthorizeCode, errors.ErrInvalidCodeChallenge, errors.ErrMissingCodeChallenge:
 				return nil, errors.ErrInvalidGrant
@@ -462,7 +462,6 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 		}
 		return ti, nil
 	case oauth2.PasswordCredentials, oauth2.ClientCredentials:
-
 		if fn := s.ClientScopeHandler; fn != nil {
 			allowed, err := fn(tgr)
 			if err != nil {
@@ -473,7 +472,6 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 		}
 		return s.Manager.GenerateAccessToken(ctx, gt, tgr)
 	case oauth2.Refreshing:
-
 		// check scope
 		if scopeFn := s.RefreshingScopeHandler; tgr.Scope != "" && scopeFn != nil {
 			rti, err := s.Manager.LoadRefreshToken(ctx, tgr.Refresh)
@@ -584,15 +582,21 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 		return nil, errors.ErrServerError
 	}
 
-	// log.Println("Server.go create openID at token : ", at)
-	// log.Println("Server.go create openID rt token : ", rt)
-
-	// test validateOpenidToken
-	// TODO delete that just for test
-	isAtValide := jwtAG.ValidOpenidJWToken(ctx, at)
-	log.Println("Is at valide: ", isAtValide)
-
 	return s.GetJWTokenData(ti, at, rt), nil
+}
+
+func (s *Server) HandleJWTokenValidation(ctx context.Context, r *http.Request, jwt, keyID, secretKey, encoding string) error {
+
+	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
+
+	return jwtAG.ValidOpenidJWToken(ctx, jwt)
+}
+
+func (s *Server) HandleJWTokenGetdata(ctx context.Context, r *http.Request, jwt, keyID, secretKey, encoding string) (error, map[string]interface{}) {
+
+	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
+
+	return jwtAG.GetdataOpenidJWToken(ctx, jwt)
 }
 
 // RefreshOpenidToken valid and refresh(if not expire) the jwtokens
@@ -641,13 +645,13 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 			return errors.ErrServerError
 		}
 
-		// user can finally cutomize the payload
-		err = s.CustomizeTokenPayloadHandler(r, tokenData)
-		if err != nil {
-			return err
-		}
+		// // user can finally cutomize the payload
+		// err = s.CustomizeTokenPayloadHandler(r, tokenData)
+		// if err != nil {
+		// 	return err
+		// }
 
-		return s.token(w, tokenData, nil, http.StatusOK)
+		return s.token(w, r, tokenData, nil, http.StatusOK)
 	}
 
 }
@@ -658,12 +662,12 @@ func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) erro
 
 	gt, tgr, err := s.ValidationTokenRequest(r)
 	if err != nil {
-		return s.tokenError(w, err)
+		return s.tokenError(w, r, err)
 	}
 
 	ti, err := s.GetAccessToken(ctx, gt, tgr)
 	if err != nil {
-		return s.tokenError(w, err)
+		return s.tokenError(w, r, err)
 	}
 
 	scopesArray := strings.Split(ti.GetScope(), ",")
@@ -673,22 +677,17 @@ func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) erro
 			if strings.TrimSpace(sc) == "openid" {
 				tk, err := s.HandleOpenidRequest(ctx, w, r, ti)
 				if err != nil {
-					return s.token(w, nil, nil, http.StatusInternalServerError)
+					return s.token(w, r, nil, nil, http.StatusInternalServerError)
 				}
 
-				// user can finally cutomize the payload
-				err = s.CustomizeTokenPayloadHandler(r, tk)
-				if err != nil {
-					return err
-				}
-
-				return s.token(w, tk, nil)
+				return s.token(w, r, tk, nil)
+				// return s.token(w, test, nil)
 			}
 		}
 	}
 
 	// NOTE in case of token, that should return the tokens
-	return s.token(w, s.GetTokenData(ti), nil)
+	return s.token(w, r, s.GetTokenData(ti), nil)
 }
 
 // GetErrorData get error response data

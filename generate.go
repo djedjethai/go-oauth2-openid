@@ -30,6 +30,7 @@ type (
 		CreateJWTAccessGenerate(kid string, key []byte, meth ...string) JWTAccessGenerate
 		GenerateOpenidJWToken(ctx context.Context, tokenInfo TokenInfo, isGenRefresh bool, openidInfo OpenidInfo) (string, string, error)
 		ValidOpenidJWToken(ctx context.Context, tokenSecret string) error
+		GetdataOpenidJWToken(ctx context.Context, tokenSecret string) (error, map[string]interface{})
 		GetOauthTokensFromOpenidJWToken(ctx context.Context, tokenSecret string) (OpenidInfo, string, string, error)
 		Token(ctx context.Context, data *GenerateBasic, isGenRefresh bool) (string, string, error)
 	}
