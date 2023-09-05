@@ -492,6 +492,22 @@ func (m *Manager) RemoveRefreshToken(ctx context.Context, refresh string) error 
 	return m.tokenStore.RemoveByRefresh(ctx, refresh)
 }
 
+// RemoveAllTokensByAccessToken use the access token to delete all tokens
+func (m *Manager) RemoveAllTokensByAccessToken(ctx context.Context, access string) error {
+	if access == "" {
+		return errors.ErrInvalidAccessToken
+	}
+	return m.tokenStore.RemoveAllTokensByAccess(ctx, access)
+}
+
+// RemoveAllTokensByRefreshToken use the refresh token to delete all tokens
+func (m *Manager) RemoveAllTokensByRefreshToken(ctx context.Context, refresh string) error {
+	if refresh == "" {
+		return errors.ErrInvalidAccessToken
+	}
+	return m.tokenStore.RemoveAllTokensByRefresh(ctx, refresh)
+}
+
 // LoadAccessToken according to the access token for corresponding token information
 func (m *Manager) LoadAccessToken(ctx context.Context, access string) (oauth2.TokenInfo, error) {
 	if access == "" {

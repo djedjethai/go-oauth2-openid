@@ -599,6 +599,25 @@ func (s *Server) HandleJWTokenGetdata(ctx context.Context, r *http.Request, jwt,
 	return jwtAG.GetdataOpenidJWToken(ctx, jwt)
 }
 
+func (s *Server) HandleJWTokenGettokens(ctx context.Context, r *http.Request, jwt, keyID, secretKey, encoding string) (error, map[string]interface{}) {
+
+	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
+
+	tokenDT := make(map[string]interface{})
+	err, tokenDT := jwtAG.GetTokensOpenidJWToken(ctx, jwt)
+	if err != nil {
+		return err, tokenDT
+	}
+
+	// err = s.Manager.RemoveAllTokensByAccessToken(ctx, tokenDT["accessToken"].(string))
+	// err = s.Manager.RemoveAllTokensByRefreshToken(ctx, tokenDT["refreshToken"].(string))
+	// if err != nil {
+	// 	return err, tokenDT
+	// }
+
+	return nil, tokenDT
+}
+
 // RefreshOpenidToken valid and refresh(if not expire) the jwtokens
 func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 

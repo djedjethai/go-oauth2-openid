@@ -220,6 +220,40 @@ func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenStrin
 	return errors.ErrInvalidJWToken, data
 }
 
+// GetTokensOpenidJWToken return the accessToken and refresh Token
+func (a *JWTAccessGenerate) GetTokensOpenidJWToken(ctx context.Context, tokenString string) (error, map[string]interface{}) {
+	data := make(map[string]interface{})
+	if a.isHs() {
+		var secretKey = a.signedKey
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			claims := token.Claims.(jwt.MapClaims)
+			err := claims.Valid()
+			if err != nil {
+				return nil, errors.ErrExpiredJWToken
+			}
+
+			return secretKey, nil
+		})
+		if err != nil {
+			return errors.ErrInvalidJWToken, data
+		}
+
+		// Check if the token is valid
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			// Access openidInfo claims
+			data["accessToken"] = claims["accessToken"]
+			data["refreshToken"] = claims["refreshToken"]
+		} else {
+			return errors.ErrInvalidJWToken, data
+		}
+
+		return nil, data
+	}
+
+	return errors.ErrInvalidJWToken, data
+}
+
 func (a *JWTAccessGenerate) isEs() bool {
 	return strings.HasPrefix(a.signedMethod.Alg(), "ES")
 }

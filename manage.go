@@ -57,5 +57,12 @@ type Manager interface {
 
 	// GetOauthTokensFromOpenidJWToken(ctx context.Context, secretKey, token string) (OpenidInfo, string, string, error)
 
+	// RefreshTokens refresh access and refresh JWT tokens
 	RefreshTokens(ctx context.Context, refresh string) (TokenInfo, error)
+
+	// use the access token to delete all the tokens information
+	RemoveAllTokensByAccessToken(ctx context.Context, access string) (err error)
+
+	// use the refresh token to delete all the tokens information
+	RemoveAllTokensByRefreshToken(ctx context.Context, refresh string) (err error)
 }

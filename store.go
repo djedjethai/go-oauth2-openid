@@ -23,6 +23,12 @@ type (
 		// use the refresh token to delete the token information
 		RemoveByRefresh(ctx context.Context, refresh string) error
 
+		// use the access token to delete all the tokens
+		RemoveAllTokensByAccess(ctx context.Context, access string) error
+
+		// use the refresh token to delete all the tokens
+		RemoveAllTokensByRefresh(ctx context.Context, refresh string) error
+
 		// use the authorization code for token information data
 		GetByCode(ctx context.Context, code string) (TokenInfo, error)
 
