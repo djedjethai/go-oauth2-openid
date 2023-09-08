@@ -3,10 +3,6 @@ package generates
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
-	// "reflect"
-
-	// "fmt"
 	"strings"
 	"time"
 
@@ -19,9 +15,9 @@ import (
 // JWTAccessClaims jwt claims
 type JWTAccessClaims struct {
 	jwt.StandardClaims
-	UserInfo     oauth2.OpenidInfo `json:"openidInfo"`
-	AccessToken  string            `json:"accessToken"`
-	RefreshToken string            `json:"refreshToken"`
+	UserInfo oauth2.OpenidInfo `json:"openidInfo"`
+	// AccessToken  string            `json:"accessToken"`
+	// RefreshToken string            `json:"refreshToken"`
 }
 
 // Valid claims verification
@@ -73,9 +69,9 @@ func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2
 			ExpiresAt: ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix(),
 			// ExpiresAt: time.Now().Unix(),
 		},
-		UserInfo:     ui,
-		AccessToken:  ti.GetAccess(),
-		RefreshToken: ti.GetRefresh(),
+		UserInfo: ui,
+		// AccessToken:  ti.GetAccess(),
+		// RefreshToken: ti.GetRefresh(),
 	}
 
 	token := jwt.NewWithClaims(a.signedMethod, claims)
@@ -130,28 +126,28 @@ func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2
 	return access, refresh, nil
 }
 
-// GetOauthTokensFromOpenidJWToken ... ?
-func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context, tokenString string) (oauth2.OpenidInfo, string, string, error) {
-
-	var token *jwt.Token
-	if a.isHs() {
-		var secretKey = a.signedKey
-		var err error
-		token, err = jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return secretKey, nil
-		})
-		if err != nil {
-			return nil, "", "", err
-		}
-		fmt.Println(token)
-	} else {
-		return nil, "", "", errors.ErrAccessDenied
-	}
-
-	claims := token.Claims.(jwt.MapClaims)
-
-	return oauth2.OpenidInfo(claims["openidInfo"].(map[string]interface{})), claims["accessToken"].(string), claims["refreshToken"].(string), nil
-}
+// // GetOauthTokensFromOpenidJWToken ... ?
+// func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context, tokenString string) (oauth2.OpenidInfo, string, string, error) {
+//
+// 	var token *jwt.Token
+// 	if a.isHs() {
+// 		var secretKey = a.signedKey
+// 		var err error
+// 		token, err = jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+// 			return secretKey, nil
+// 		})
+// 		if err != nil {
+// 			return nil, "", "", err
+// 		}
+// 		fmt.Println(token)
+// 	} else {
+// 		return nil, "", "", errors.ErrAccessDenied
+// 	}
+//
+// 	claims := token.Claims.(jwt.MapClaims)
+//
+// 	return oauth2.OpenidInfo(claims["openidInfo"].(map[string]interface{})), claims["accessToken"].(string), claims["refreshToken"].(string), nil
+// }
 
 // TODO that works only for token of type HS, implement others
 func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, tokenString string) error {
@@ -185,9 +181,11 @@ func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, tokenString 
 }
 
 // GetdataOpenidJWToken return the user's data stored into the JWT
-func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenString string) (error, map[string]interface{}) {
+func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenString string) (map[string]interface{}, error) {
+
 	data := make(map[string]interface{})
 	if a.isHs() {
+
 		var secretKey = a.signedKey
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -200,12 +198,14 @@ func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenStrin
 			return secretKey, nil
 		})
 		if err != nil {
-			return errors.ErrInvalidJWToken, data
+			return data, errors.ErrInvalidJWToken
 		}
 
 		// Check if the token is valid
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+
 			// Access openidInfo claims
+			// TODO maybe loop on the claim to get all datas
 			data["email"] = claims["sub"]
 			if openidInfo, ok := claims["openidInfo"].(map[string]interface{}); ok {
 				for k, v := range openidInfo {
@@ -213,48 +213,48 @@ func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenStrin
 				}
 			}
 		} else {
-			return errors.ErrInvalidJWToken, data
+			return data, errors.ErrInvalidJWToken
 		}
 
-		return nil, data
+		return data, nil
 	}
 
-	return errors.ErrInvalidJWToken, data
+	return data, errors.ErrInvalidJWToken
 }
 
-// GetTokensOpenidJWToken return the accessToken and refresh Token
-func (a *JWTAccessGenerate) GetTokensOpenidJWToken(ctx context.Context, tokenString string) (error, map[string]interface{}) {
-	data := make(map[string]interface{})
-	if a.isHs() {
-		var secretKey = a.signedKey
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			claims := token.Claims.(jwt.MapClaims)
-			err := claims.Valid()
-			if err != nil {
-				return nil, errors.ErrExpiredJWToken
-			}
-
-			return secretKey, nil
-		})
-		if err != nil {
-			return errors.ErrInvalidJWToken, data
-		}
-
-		// Check if the token is valid
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			// Access openidInfo claims
-			data["accessToken"] = claims["accessToken"]
-			data["refreshToken"] = claims["refreshToken"]
-		} else {
-			return errors.ErrInvalidJWToken, data
-		}
-
-		return nil, data
-	}
-
-	return errors.ErrInvalidJWToken, data
-}
+// // GetTokensOpenidJWToken return the accessToken and refresh Token
+// func (a *JWTAccessGenerate) GetTokensOpenidJWToken(ctx context.Context, tokenString string) (error, map[string]interface{}) {
+// 	data := make(map[string]interface{})
+// 	if a.isHs() {
+// 		var secretKey = a.signedKey
+//
+// 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+// 			claims := token.Claims.(jwt.MapClaims)
+// 			err := claims.Valid()
+// 			if err != nil {
+// 				return nil, errors.ErrExpiredJWToken
+// 			}
+//
+// 			return secretKey, nil
+// 		})
+// 		if err != nil {
+// 			return errors.ErrInvalidJWToken, data
+// 		}
+//
+// 		// Check if the token is valid
+// 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+// 			// Access openidInfo claims
+// 			data["accessToken"] = claims["accessToken"]
+// 			data["refreshToken"] = claims["refreshToken"]
+// 		} else {
+// 			return errors.ErrInvalidJWToken, data
+// 		}
+//
+// 		return nil, data
+// 	}
+//
+// 	return errors.ErrInvalidJWToken, data
+// }
 
 func (a *JWTAccessGenerate) isEs() bool {
 	return strings.HasPrefix(a.signedMethod.Alg(), "ES")
