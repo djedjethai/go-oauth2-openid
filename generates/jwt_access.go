@@ -130,6 +130,7 @@ func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2
 	return access, refresh, nil
 }
 
+// GetOauthTokensFromOpenidJWToken ... ?
 func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context, tokenString string) (oauth2.OpenidInfo, string, string, error) {
 
 	var token *jwt.Token
@@ -183,6 +184,7 @@ func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, tokenString 
 	return errors.ErrInvalidJWToken
 }
 
+// GetdataOpenidJWToken return the user's data stored into the JWT
 func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenString string) (error, map[string]interface{}) {
 	data := make(map[string]interface{})
 	if a.isHs() {

@@ -3,10 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
-	// "errors"
 	"fmt"
-	// "log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -362,6 +361,8 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 }
 
 // ValidationTokenRequest the token request validation
+// TODO if want to config the token expiration should be here,
+// tgr.AccessTokenExp = r.FormValue["token_expiration"]     // see oauth2/manage.go
 func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
 	if v := r.Method; !(v == "POST" ||
 		(s.Config.AllowGetAccessRequest && v == "GET")) {
@@ -386,6 +387,14 @@ func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oau
 
 	switch gt {
 	case oauth2.AuthorizationCode:
+		ru := r.FormValue("token_expiration")
+		if len(ru) > 0 {
+			// log.Println("server.go - ValidationTokenRequest - ru: ", ru)
+			rui, err := strconv.Atoi(ru)
+			if err == nil {
+				tgr.AccessTokenExp = time.Duration(rui) * time.Minute
+			}
+		}
 		tgr.RedirectURI = r.FormValue("redirect_uri")
 		tgr.Code = r.FormValue("code")
 		if tgr.RedirectURI == "" ||
@@ -663,12 +672,6 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 		if err != nil {
 			return errors.ErrServerError
 		}
-
-		// // user can finally cutomize the payload
-		// err = s.CustomizeTokenPayloadHandler(r, tokenData)
-		// if err != nil {
-		// 	return err
-		// }
 
 		return s.token(w, r, tokenData, nil, http.StatusOK)
 	}

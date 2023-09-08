@@ -361,6 +361,7 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 	gcfg := m.grantConfig(gt)
 	aexp := gcfg.AccessTokenExp
 	if exp := tgr.AccessTokenExp; exp > 0 {
+		// NOTE the refreshToken 3 lines below
 		aexp = exp
 	}
 	ti.SetAccessExpiresIn(aexp)
