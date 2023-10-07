@@ -2,7 +2,7 @@ module server
 
 go 1.20
 
-replace github.com/djedjethai/go-oauth2-openid/oauth2 => ../../../
+replace github.com/djedjethai/go-oauth2-openid => ../../../
 
 require (
 	github.com/jackc/pgx/v4 v4.18.1
