@@ -13,13 +13,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-oauth2-openid/generates"
+	"github.com/djedjethai/go-oauth2-openid/generates"
 
-	"github.com/go-oauth2-openid/errors"
-	"github.com/go-oauth2-openid/manage"
-	"github.com/go-oauth2-openid/models"
-	"github.com/go-oauth2-openid/server"
-	"github.com/go-oauth2-openid/store"
+	"github.com/djedjethai/go-oauth2-openid/errors"
+	"github.com/djedjethai/go-oauth2-openid/manage"
+	"github.com/djedjethai/go-oauth2-openid/models"
+	"github.com/djedjethai/go-oauth2-openid/server"
+	"github.com/djedjethai/go-oauth2-openid/store"
 	"github.com/go-session/session"
 )
 
