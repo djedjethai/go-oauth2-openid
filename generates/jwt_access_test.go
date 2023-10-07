@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/djedjethai/go-oauth2-openid/oauth2"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/generates"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/models"
+	oauth2 "github.com/djedjethai/go-oauth2-openid"
+	"github.com/djedjethai/go-oauth2-openid/generates"
+	"github.com/djedjethai/go-oauth2-openid/models"
 	"github.com/golang-jwt/jwt"
 
 	. "github.com/smartystreets/goconvey/convey"

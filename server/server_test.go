@@ -7,12 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/djedjethai/go-oauth2-openid/oauth2"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/errors"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/manage"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/models"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/server"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/store"
+	oauth2 "github.com/djedjethai/go-oauth2-openid"
+	"github.com/djedjethai/go-oauth2-openid/errors"
+	"github.com/djedjethai/go-oauth2-openid/manage"
+	"github.com/djedjethai/go-oauth2-openid/models"
+	"github.com/djedjethai/go-oauth2-openid/server"
+	"github.com/djedjethai/go-oauth2-openid/store"
 	"github.com/gavv/httpexpect"
 )
 

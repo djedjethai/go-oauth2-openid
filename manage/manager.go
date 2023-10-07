@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/djedjethai/go-oauth2-openid/oauth2"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/errors"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/generates"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/models"
+	oauth2 "github.com/djedjethai/go-oauth2-openid"
+	"github.com/djedjethai/go-oauth2-openid/errors"
+	"github.com/djedjethai/go-oauth2-openid/generates"
+	"github.com/djedjethai/go-oauth2-openid/models"
 )
 
 // NewDefaultManager create to default authorization management instance

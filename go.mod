@@ -1,4 +1,4 @@
-module github.com/djedjethai/go-oauth2-openid/oauth2
+module github.com/djedjethai/go-oauth2-openid
 
 go 1.13
 

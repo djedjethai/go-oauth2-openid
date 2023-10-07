@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/djedjethai/go-oauth2-openid/oauth2/server"
+	"github.com/djedjethai/go-oauth2-openid/server"
 	"net/http"
 	"os"
 	"sync"

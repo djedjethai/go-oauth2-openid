@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/djedjethai/go-oauth2-openid/oauth2/errors"
+	"github.com/djedjethai/go-oauth2-openid/errors"
 )
 
 type (

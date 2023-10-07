@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/djedjethai/go-oauth2-openid/oauth2"
+	oauth2 "github.com/djedjethai/go-oauth2-openid"
 )
 
 // Config configuration parameters
