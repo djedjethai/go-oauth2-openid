@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-oauth2/oauth2/v4"
-	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/djedjethai/go-oauth2-openid/oauth2"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/errors"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 )
@@ -203,7 +203,41 @@ func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenStrin
 
 		// Check if the token is valid
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			// Access openidInfo claims
+			// TODO maybe loop on the claim to get all datas
+			data["email"] = claims["sub"]
+			if openidInfo, ok := claims["openidInfo"].(map[string]interface{}); ok {
+				for k, v := range openidInfo {
+					data[k] = v
+				}
+			}
+		} else {
+			return data, errors.ErrInvalidJWToken
+		}
 
+		return data, nil
+	}
+
+	return data, errors.ErrInvalidJWToken
+}
+
+// GetdataOpenidJWToken return the user's data stored into the JWT
+func (a *JWTAccessGenerate) GetdataAdminOpenidJWToken(ctx context.Context, tokenString string) (map[string]interface{}, error) {
+
+	data := make(map[string]interface{})
+	if a.isHs() {
+
+		var secretKey = a.signedKey
+
+		token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return secretKey, nil
+		})
+		// if err != nil {
+		// 	return data, errors.ErrInvalidJWToken
+		// }
+
+		// Check if the token is valid
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			// Access openidInfo claims
 			// TODO maybe loop on the claim to get all datas
 			data["email"] = claims["sub"]

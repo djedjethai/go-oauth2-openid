@@ -3,7 +3,7 @@ package oauth2_test
 import (
 	"testing"
 
-	"github.com/go-oauth2/oauth2/v4"
+	"github.com/djedjethai/go-oauth2-openid/oauth2"
 )
 
 func TestValidatePlain(t *testing.T) {

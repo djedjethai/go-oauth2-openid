@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/go-oauth2/oauth2/v4/server"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/server"
 	"io"
 	"log"
 	"net/http"

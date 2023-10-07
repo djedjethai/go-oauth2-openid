@@ -10,13 +10,13 @@ import (
 	"net/http/httputil"
 	"time"
 
-	"github.com/go-oauth2/oauth2/v4/generates"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/generates"
 	"server/internal/handlers"
 
-	"github.com/go-oauth2/oauth2/v4/errors"
-	"github.com/go-oauth2/oauth2/v4/manage"
-	"github.com/go-oauth2/oauth2/v4/models"
-	"github.com/go-oauth2/oauth2/v4/server"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/errors"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/manage"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/models"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/server"
 	"github.com/jackc/pgx/v4"
 	pg "github.com/vgarvardt/go-oauth2-pg/v4"
 	"github.com/vgarvardt/go-pg-adapter/pgx4adapter"

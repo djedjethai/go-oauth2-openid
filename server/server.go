@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-oauth2/oauth2/v4"
-	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/djedjethai/go-oauth2-openid/oauth2"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/errors"
 )
 
 // NewDefaultServer create a default authorization server
@@ -610,6 +610,13 @@ func (s *Server) HandleJWTokenGetdata(ctx context.Context, r *http.Request, jwt,
 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
 
 	return jwtAG.GetdataOpenidJWToken(ctx, jwt)
+}
+
+func (s *Server) HandleJWTokenAdminGetdata(ctx context.Context, r *http.Request, jwt, keyID, secretKey, encoding string) (map[string]interface{}, error) {
+
+	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
+
+	return jwtAG.GetdataAdminOpenidJWToken(ctx, jwt)
 }
 
 // func (s *Server) HandleJWTokenGettokens(ctx context.Context, r *http.Request, jwt, keyID, secretKey, encoding string) (error, map[string]interface{}) {

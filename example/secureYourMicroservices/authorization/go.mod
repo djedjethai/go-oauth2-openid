@@ -2,10 +2,9 @@ module server
 
 go 1.20
 
-replace github.com/go-oauth2/oauth2/v4 => ../../../
+replace github.com/djedjethai/go-oauth2-openid/oauth2 => ../../../
 
 require (
-	github.com/go-oauth2/oauth2/v4 v4.4.3
 	github.com/jackc/pgx/v4 v4.18.1
 	github.com/vgarvardt/go-oauth2-pg/v4 v4.4.3
 	github.com/vgarvardt/go-pg-adapter v1.0.0

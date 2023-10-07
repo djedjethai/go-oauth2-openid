@@ -7,13 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/djedjethai/go-oauth2-openid/oauth2"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/errors"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/manage"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/models"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/server"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/store"
 	"github.com/gavv/httpexpect"
-	"github.com/go-oauth2/oauth2/v4"
-	"github.com/go-oauth2/oauth2/v4/errors"
-	"github.com/go-oauth2/oauth2/v4/manage"
-	"github.com/go-oauth2/oauth2/v4/models"
-	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-oauth2/oauth2/v4/store"
 )
 
 var (

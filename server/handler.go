@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-oauth2/oauth2/v4"
-	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/djedjethai/go-oauth2-openid/oauth2"
+	"github.com/djedjethai/go-oauth2-openid/oauth2/errors"
 )
 
 type (
