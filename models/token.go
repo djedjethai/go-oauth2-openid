@@ -28,6 +28,7 @@ type Token struct {
 	Refresh             string        `bson:"Refresh"`
 	RefreshCreateAt     time.Time     `bson:"RefreshCreateAt"`
 	RefreshExpiresIn    time.Duration `bson:"RefreshExpiresIn"`
+	Role                string        `bson:"Role"`
 }
 
 // New create to token model instance
@@ -83,6 +84,16 @@ func (t *Token) GetCode() string {
 // SetCode authorization code
 func (t *Token) SetCode(code string) {
 	t.Code = code
+}
+
+// SetCode authorization code
+func (t *Token) SetRole(role string) {
+	t.Role = role
+}
+
+// SetCode authorization code
+func (t *Token) GetRole() string {
+	return t.Role
 }
 
 // GetCodeCreateAt create Time

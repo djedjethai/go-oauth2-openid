@@ -134,7 +134,6 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request, data map[string]i
 		status = statusCode[0]
 	}
 
-	fmt.Println("server.go - token - see the req: ", r)
 	// add accessToken and refreshToken to the data, for the user to do what he need
 	data["access_token"] = ti.GetAccess()
 	data["refresh_token"] = ti.GetRefresh()
@@ -144,6 +143,8 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request, data map[string]i
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("server.go - token - pl: ", pl)
 
 	w.WriteHeader(status)
 	// return json.NewEncoder(w).Encode(data)
@@ -308,6 +309,7 @@ func (s *Server) GetAuthorizeData(rt oauth2.ResponseType, ti oauth2.TokenInfo) m
 	return s.GetTokenData(ti)
 }
 
+// NOTE ....
 // HandleAuthorizeRequest the authorization request handling
 func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) error {
 
@@ -322,6 +324,7 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 	// user authorization
 
 	userID, err := s.UserAuthorizationHandler(w, r)
+	fmt.Println("server.go - HandleAuthorizeRequest - userID: ", userID)
 	if err != nil {
 		return s.handleError(w, req, err)
 	} else if userID == "" {
@@ -332,6 +335,8 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 
 	// specify the scope of authorization
 	if fn := s.AuthorizeScopeHandler; fn != nil {
+
+		// fmt.Println("server.go - HandleAuthorizeRequest - HandleAuthorizeRequest is not nil.....")
 		scope, err := fn(w, r)
 		if err != nil {
 			return err
@@ -349,10 +354,13 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 		req.AccessTokenExp = exp
 	}
 
+	// fmt.Println("server.go - HandleAuthorizeRequest - befrore.........: ")
+
 	ti, err := s.GetAuthorizeToken(ctx, req)
 	if err != nil {
 		return s.handleError(w, req, err)
 	}
+	// fmt.Println("server.go - HandleAuthorizeRequest - after............. ")
 
 	// If the redirect URI is empty, the default domain provided by the client is used.
 	if req.RedirectURI == "" {
@@ -366,6 +374,7 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 	return s.redirect(w, req, s.GetAuthorizeData(req.ResponseType, ti))
 }
 
+// NOTE ....
 // ValidationTokenRequest the token request validation
 func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
 	if v := r.Method; !(v == "POST" ||
@@ -373,15 +382,20 @@ func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oau
 		return "", nil, errors.ErrInvalidRequest
 	}
 
+	// fmt.Println("server.go - ValidationTokenRequest - 1 ")
+
 	gt := oauth2.GrantType(r.FormValue("grant_type"))
 	if gt.String() == "" {
 		return "", nil, errors.ErrUnsupportedGrantType
 	}
 
+	// fmt.Println("server.go - ValidationTokenRequest - 2 ")
+
 	clientID, clientSecret, err := s.ClientInfoHandler(r)
 	if err != nil {
 		return "", nil, err
 	}
+	// fmt.Println("server.go - ValidationTokenRequest - 3 ")
 
 	tgr := &oauth2.TokenGenerateRequest{
 		ClientID:     clientID,
@@ -445,6 +459,7 @@ func (s *Server) CheckGrantType(gt oauth2.GrantType) bool {
 	return false
 }
 
+// NOTE NOTE
 // GetAccessToken access token
 func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
 	if allowed := s.CheckGrantType(gt); !allowed {
@@ -462,6 +477,9 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 
 	switch gt {
 	case oauth2.AuthorizationCode:
+		// TODO ......
+		fmt.Println("server.go - GetAccessToken - gt: ", gt)
+		fmt.Println("server.go - GetAccessToken - tgr: ", tgr)
 		ti, err := s.Manager.GenerateAccessToken(ctx, gt, tgr)
 		if err != nil {
 			switch err {
@@ -583,6 +601,7 @@ func (s *Server) GetJWTokenData(ti oauth2.TokenInfo, jwtToken, jwtRefreshToken s
 	return data
 }
 
+// NOTE NOTE
 // HandleOpenidRequest handle the creation of the jwtokens and return them
 func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, ti oauth2.TokenInfo) (map[string]interface{}, error) {
 
@@ -693,21 +712,28 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 
 }
 
+// NOTE NOTE
 // HandleTokenRequest token request handling
 func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
+
+	fmt.Println("server.go - HandleTokenRequest - entry ----------------------------")
 
 	gt, tgr, err := s.ValidationTokenRequest(r)
 	if err != nil {
 		return s.tokenError(w, r, nil, err)
 	}
 
+	// fmt.Println("server.go - HandleTokenRequest - see the request:...... ", r)
 	ti, err := s.GetAccessToken(ctx, gt, tgr)
 	if err != nil {
 		return s.tokenError(w, r, nil, err)
 	}
+	// fmt.Println("server.go - HandleTokenRequest - 2")
 
+	fmt.Println("server.go - HandleTokenRequest - ti.GetScope(): ", ti.GetScope())
 	scopesArray := strings.Split(ti.GetScope(), ",")
+	fmt.Println("server.go - HandleTokenRequest - scopesArray: ", scopesArray)
 	if len(scopesArray) > 0 {
 		for _, sc := range scopesArray {
 			// case openid is requested
@@ -722,6 +748,8 @@ func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) erro
 			}
 		}
 	}
+
+	// fmt.Println("server.go - HandleTokenRequest - end")
 
 	// NOTE in case of token, that should return the tokens
 	return s.token(w, r, s.GetTokenData(ti), nil, ti)

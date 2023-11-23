@@ -43,13 +43,20 @@ type Manager struct {
 	clientStore       oauth2.ClientStore
 }
 
+// NOTE NOTE
 // get grant type config
-func (m *Manager) grantConfig(gt oauth2.GrantType) *Config {
+func (m *Manager) grantConfig(gt oauth2.GrantType, role ...string) *Config {
 	if c, ok := m.gtcfg[gt]; ok && c != nil {
 		return c
 	}
 	switch gt {
 	case oauth2.AuthorizationCode:
+		if len(role) > 0 {
+			switch role[0] {
+			case "API server":
+				return DefaultAuthorizeCodeServerTokenCfg
+			}
+		}
 		return DefaultAuthorizeCodeTokenCfg
 	case oauth2.Implicit:
 		return DefaultImplicitTokenCfg
@@ -248,9 +255,11 @@ func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType,
 	return ti, nil
 }
 
+// NOTE  ....
 // get authorization code data
 func (m *Manager) getAuthorizationCode(ctx context.Context, code string) (oauth2.TokenInfo, error) {
 	ti, err := m.tokenStore.GetByCode(ctx, code)
+	fmt.Println("manager.go - getAuthorizationCode err: ", err, "  - ", ti)
 	if err != nil {
 		return nil, err
 	} else if ti == nil || ti.GetCode() != code || ti.GetCodeCreateAt().Add(ti.GetCodeExpiresIn()).Before(time.Now()) {
@@ -265,11 +274,15 @@ func (m *Manager) delAuthorizationCode(ctx context.Context, code string) error {
 	return m.tokenStore.RemoveByCode(ctx, code)
 }
 
+// NOTE ....
 // get and delete authorization code data
 func (m *Manager) getAndDelAuthorizationCode(ctx context.Context, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
 	code := tgr.Code
 
+	fmt.Println("manager.go - getAndDelAuthorizationCode see the code: ", code)
+
 	ti, err := m.getAuthorizationCode(ctx, code)
+	fmt.Println("manager.go - getAndDelAuthorizationCode: ", err, " - ", ti)
 	if err != nil {
 		return nil, err
 	} else if ti.GetClientID() != tgr.ClientID {
@@ -277,6 +290,8 @@ func (m *Manager) getAndDelAuthorizationCode(ctx context.Context, tgr *oauth2.To
 	} else if codeURI := ti.GetRedirectURI(); codeURI != "" && codeURI != tgr.RedirectURI {
 		return nil, errors.ErrInvalidAuthorizeCode
 	}
+
+	fmt.Println("manager.go - getAndDelAuthorizationCode: ", ti.GetRedirectURI())
 
 	err = m.delAuthorizationCode(ctx, code)
 	if err != nil {
@@ -328,18 +343,27 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 		}
 	}
 
+	fmt.Println("manager.go - GenerateAccessToken - 1")
+
 	if gt == oauth2.ClientCredentials && cli.IsPublic() == true {
 		return nil, errors.ErrInvalidClient
 	}
+	fmt.Println("manager.go - GenerateAccessToken - 11")
 
 	if gt == oauth2.AuthorizationCode {
+		fmt.Println("manager.go - GenerateAccessToken - 111")
 		ti, err := m.getAndDelAuthorizationCode(ctx, tgr)
 		if err != nil {
 			return nil, err
 		}
+
+		fmt.Println("manager.go - GenerateAccessToken - 2")
+
 		if err := m.validateCodeChallenge(ti, tgr.CodeVerifier); err != nil {
 			return nil, err
 		}
+
+		fmt.Println("manager.go - GenerateAccessToken - 3")
 
 		tgr.UserID = ti.GetUserID()
 		tgr.Scope = ti.GetScope()
@@ -348,17 +372,26 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 		}
 	}
 
+	// fmt.Println("manager.go - GenerateAccessToken - see tgr.Request.............: ", tgr.Request)
+
 	ti := models.NewToken()
 	ti.SetClientID(tgr.ClientID)
 	ti.SetUserID(tgr.UserID)
 	ti.SetRedirectURI(tgr.RedirectURI)
 	ti.SetScope(tgr.Scope)
+	role := tgr.Request.PostFormValue("role")
+	if len(role) > 0 {
+		ti.SetRole(role)
+	}
 
 	createAt := time.Now()
 	ti.SetAccessCreateAt(createAt)
 
+	fmt.Println("manager.go - GenerateAccessToken - see ti.............: ", ti)
+
 	// set access token expires
-	gcfg := m.grantConfig(gt)
+	// NOTE NOTE
+	gcfg := m.grantConfig(gt, role)
 	aexp := gcfg.AccessTokenExp
 	if exp := tgr.AccessTokenExp; exp > 0 {
 		// NOTE the refreshToken 3 lines below

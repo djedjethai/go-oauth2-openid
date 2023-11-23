@@ -44,6 +44,9 @@ type (
 		SetCodeChallenge(string)
 		GetCodeChallengeMethod() CodeChallengeMethod
 		SetCodeChallengeMethod(CodeChallengeMethod)
+		//
+		SetRole(string)
+		GetRole() string
 
 		GetAccess() string
 		SetAccess(string)
