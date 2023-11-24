@@ -61,6 +61,9 @@ func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2
 	if scope := ti.GetScope(); scope != "" {
 		ui["scope"] = scope
 	}
+	if role := ti.GetRole(); role != "" {
+		ui["role"] = role
+	}
 
 	claims := &JWTAccessClaims{
 		StandardClaims: jwt.StandardClaims{

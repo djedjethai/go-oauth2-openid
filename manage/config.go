@@ -30,11 +30,11 @@ type RefreshingConfig struct {
 
 // default configs
 var (
-	DefaultCodeExp                     = time.Minute * 10
-	DefaultAuthorizeCodeTokenCfg       = &Config{AccessTokenExp: time.Hour * 2, RefreshTokenExp: time.Hour * 24 * 15, IsGenerateRefresh: true}
-	DefaultAuthorizeCodeServerTokenCfg = &Config{AccessTokenExp: time.Hour * 24 * 30, RefreshTokenExp: time.Hour * 24 * 90, IsGenerateRefresh: true}
-	DefaultImplicitTokenCfg            = &Config{AccessTokenExp: time.Hour * 1}
-	DefaultPasswordTokenCfg            = &Config{AccessTokenExp: time.Hour * 2, RefreshTokenExp: time.Hour * 24 * 7, IsGenerateRefresh: true}
-	DefaultClientTokenCfg              = &Config{AccessTokenExp: time.Hour * 2}
-	DefaultRefreshTokenCfg             = &RefreshingConfig{IsGenerateRefresh: true, IsRemoveAccess: true, IsRemoveRefreshing: true}
+	DefaultCodeExp                        = time.Minute * 10
+	DefaultAuthorizeCodeTokenCfg          = &Config{AccessTokenExp: time.Hour * 2, RefreshTokenExp: time.Hour * 24 * 15, IsGenerateRefresh: true}
+	DefaultAuthorizeCodeAPIServerTokenCfg = &Config{AccessTokenExp: time.Hour * 24 * 30, RefreshTokenExp: time.Hour * 24 * 180, IsGenerateRefresh: true}
+	DefaultImplicitTokenCfg               = &Config{AccessTokenExp: time.Hour * 1}
+	DefaultPasswordTokenCfg               = &Config{AccessTokenExp: time.Hour * 2, RefreshTokenExp: time.Hour * 24 * 7, IsGenerateRefresh: true}
+	DefaultClientTokenCfg                 = &Config{AccessTokenExp: time.Hour * 2}
+	DefaultRefreshTokenCfg                = &RefreshingConfig{IsGenerateRefresh: true, IsRemoveAccess: true, IsRemoveRefreshing: true}
 )

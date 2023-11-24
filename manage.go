@@ -14,6 +14,7 @@ type TokenGenerateRequest struct {
 	UserID              string
 	RedirectURI         string
 	Scope               string
+	Role                string
 	Code                string
 	CodeChallenge       string
 	CodeChallengeMethod CodeChallengeMethod

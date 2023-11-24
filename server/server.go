@@ -405,14 +405,19 @@ func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oau
 
 	switch gt {
 	case oauth2.AuthorizationCode:
+		// NOTE NOTE set optional query params
 		ru := r.FormValue("token_expiration")
 		if len(ru) > 0 {
-			// log.Println("server.go - ValidationTokenRequest - ru: ", ru)
 			rui, err := strconv.Atoi(ru)
 			if err == nil {
 				tgr.AccessTokenExp = time.Duration(rui) * time.Minute
 			}
 		}
+		role := r.FormValue("role")
+		if len(role) > 0 {
+			tgr.Role = role
+		}
+
 		tgr.RedirectURI = r.FormValue("redirect_uri")
 		tgr.Code = r.FormValue("code")
 		if tgr.RedirectURI == "" ||
@@ -446,6 +451,7 @@ func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oau
 			return "", nil, errors.ErrInvalidRequest
 		}
 	}
+
 	return gt, tgr, nil
 }
 
@@ -605,6 +611,7 @@ func (s *Server) GetJWTokenData(ti oauth2.TokenInfo, jwtToken, jwtRefreshToken s
 // HandleOpenidRequest handle the creation of the jwtokens and return them
 func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, ti oauth2.TokenInfo) (map[string]interface{}, error) {
 
+	// in UserOpenidHandler a call to the db can be done to populate the user info
 	data, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
 
 	// s.Manager.SetJWTAccessGenerate("keyID", []byte("keySecret"), "HS256")

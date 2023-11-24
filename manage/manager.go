@@ -53,8 +53,8 @@ func (m *Manager) grantConfig(gt oauth2.GrantType, role ...string) *Config {
 	case oauth2.AuthorizationCode:
 		if len(role) > 0 {
 			switch role[0] {
-			case "API server":
-				return DefaultAuthorizeCodeServerTokenCfg
+			case "APIserver":
+				return DefaultAuthorizeCodeAPIServerTokenCfg
 			}
 		}
 		return DefaultAuthorizeCodeTokenCfg
@@ -379,10 +379,7 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 	ti.SetUserID(tgr.UserID)
 	ti.SetRedirectURI(tgr.RedirectURI)
 	ti.SetScope(tgr.Scope)
-	role := tgr.Request.PostFormValue("role")
-	if len(role) > 0 {
-		ti.SetRole(role)
-	}
+	ti.SetRole(tgr.Role)
 
 	createAt := time.Now()
 	ti.SetAccessCreateAt(createAt)
@@ -391,7 +388,7 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 
 	// set access token expires
 	// NOTE NOTE
-	gcfg := m.grantConfig(gt, role)
+	gcfg := m.grantConfig(gt, ti.GetRole())
 	aexp := gcfg.AccessTokenExp
 	if exp := tgr.AccessTokenExp; exp > 0 {
 		// NOTE the refreshToken 3 lines below
