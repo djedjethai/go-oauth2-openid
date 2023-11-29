@@ -7,6 +7,12 @@ type (
 	ClientStore interface {
 		// according to the ID for the client information
 		GetByID(ctx context.Context, id string) (ClientInfo, error)
+
+		// Remove a client if needed
+		RemoveByID(id string) (err error)
+
+		// Add or update a client jwt(specific to svc clients)
+		UpsertClientJWToken(ctx context.Context, id, JWToken string) (err error)
 	}
 
 	// TokenStore the token information storage interface

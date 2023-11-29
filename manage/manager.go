@@ -173,6 +173,15 @@ func (m *Manager) GetClient(ctx context.Context, clientID string) (cli oauth2.Cl
 	return
 }
 
+// GetClient get the client information
+func (m *Manager) UpsertClientJWToken(ctx context.Context, clientID, JWToken string) (err error) {
+	err = m.clientStore.UpsertClientJWToken(ctx, clientID, JWToken)
+	if err != nil {
+		return
+	}
+	return
+}
+
 // GenerateAuthToken generate the authorization token(code)
 func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
 

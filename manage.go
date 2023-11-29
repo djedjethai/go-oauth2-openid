@@ -66,4 +66,7 @@ type Manager interface {
 
 	// use the refresh token to delete all the tokens information
 	RemoveAllTokensByRefreshToken(ctx context.Context, refresh string) (err error)
+
+	// UpsertJWTClient upsert a jwtoken to the client
+	UpsertClientJWToken(ctx context.Context, id, JWToken string) error
 }

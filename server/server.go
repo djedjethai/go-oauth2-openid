@@ -664,6 +664,11 @@ func (s *Server) HandleJWTokenAdminGetdata(ctx context.Context, r *http.Request,
 // 	return nil, tokenDT
 // }
 
+// UpsertJWTokenClient upsert JWToken matching the client APIserver
+func (s *Server) UpsertClientJWToken(ctx context.Context, id, JWToken string) error {
+	return s.Manager.UpsertClientJWToken(ctx, id, JWToken)
+}
+
 // RefreshOpenidToken valid and refresh(if not expire) the jwtokens
 func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 
