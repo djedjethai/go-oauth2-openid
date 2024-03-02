@@ -129,29 +129,6 @@ func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2
 	return access, refresh, nil
 }
 
-// // GetOauthTokensFromOpenidJWToken ... ?
-// func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context, tokenString string) (oauth2.OpenidInfo, string, string, error) {
-//
-// 	var token *jwt.Token
-// 	if a.isHs() {
-// 		var secretKey = a.signedKey
-// 		var err error
-// 		token, err = jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-// 			return secretKey, nil
-// 		})
-// 		if err != nil {
-// 			return nil, "", "", err
-// 		}
-// 		fmt.Println(token)
-// 	} else {
-// 		return nil, "", "", errors.ErrAccessDenied
-// 	}
-//
-// 	claims := token.Claims.(jwt.MapClaims)
-//
-// 	return oauth2.OpenidInfo(claims["openidInfo"].(map[string]interface{})), claims["accessToken"].(string), claims["refreshToken"].(string), nil
-// }
-
 // TODO that works only for token of type HS, implement others
 func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, tokenString string) error {
 	if a.isHs() {
@@ -258,6 +235,29 @@ func (a *JWTAccessGenerate) GetdataAdminOpenidJWToken(ctx context.Context, token
 
 	return data, errors.ErrInvalidJWToken
 }
+
+// // GetOauthTokensFromOpenidJWToken ... ?
+// func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context, tokenString string) (oauth2.OpenidInfo, string, string, error) {
+//
+// 	var token *jwt.Token
+// 	if a.isHs() {
+// 		var secretKey = a.signedKey
+// 		var err error
+// 		token, err = jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+// 			return secretKey, nil
+// 		})
+// 		if err != nil {
+// 			return nil, "", "", err
+// 		}
+// 		fmt.Println(token)
+// 	} else {
+// 		return nil, "", "", errors.ErrAccessDenied
+// 	}
+//
+// 	claims := token.Claims.(jwt.MapClaims)
+//
+// 	return oauth2.OpenidInfo(claims["openidInfo"].(map[string]interface{})), claims["accessToken"].(string), claims["refreshToken"].(string), nil
+// }
 
 // // GetTokensOpenidJWToken return the accessToken and refresh Token
 // func (a *JWTAccessGenerate) GetTokensOpenidJWToken(ctx context.Context, tokenString string) (error, map[string]interface{}) {
