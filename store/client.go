@@ -32,6 +32,31 @@ func (cs *ClientStore) GetByID(ctx context.Context, id string) (oauth2.ClientInf
 	return nil, errors.New("not found")
 }
 
+func (cs *ClientStore) RemoveByID(id string) error {
+	cs.Lock()
+	defer cs.Unlock()
+
+	if _, ok := cs.data[id]; ok {
+		delete(cs.data, id)
+		return nil
+	}
+
+	return errors.New("not found")
+}
+
+func (cs *ClientStore) UpsertClientJWToken(ctx context.Context, id, JWToken string) (err error) {
+	cs.Lock()
+	defer cs.Unlock()
+
+	if _, ok := cs.data[id]; ok {
+		// TODO see how to add the jwt here...??
+		return nil
+	}
+
+	return errors.New("not found")
+
+}
+
 // Set set client information
 func (cs *ClientStore) Set(id string, cli oauth2.ClientInfo) (err error) {
 	cs.Lock()

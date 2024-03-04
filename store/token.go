@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	// "fmt"
 	"log"
 	"time"
 
@@ -33,15 +34,15 @@ type TokenStore struct {
 
 // Create create and store the new token information
 func (ts *TokenStore) Create(ctx context.Context, info oauth2.TokenInfo) error {
-	log.Println("token.go Create:... ", info)
+	// log.Println("token.go Create:... ", info)
 	ct := time.Now()
 	jv, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
-	log.Println("token.go Create see jv:... ", jv)
+	// log.Println("token.go Create see jv:... ", jv)
 
-	return ts.db.Update(func(tx *buntdb.Tx) error {
+	err = ts.db.Update(func(tx *buntdb.Tx) error {
 		if code := info.GetCode(); code != "" {
 			_, _, err := tx.Set(code, string(jv), &buntdb.SetOptions{Expires: true, TTL: info.GetCodeExpiresIn()})
 			return err
@@ -58,18 +59,29 @@ func (ts *TokenStore) Create(ctx context.Context, info oauth2.TokenInfo) error {
 			}
 			expires = info.GetRefreshExpiresIn() != 0
 			_, _, err := tx.Set(refresh, basicID, &buntdb.SetOptions{Expires: expires, TTL: rexp})
+			// fmt.Println("token.go Create see err1: ", err)
 			if err != nil {
 				return err
 			}
 		}
 
 		_, _, err := tx.Set(basicID, string(jv), &buntdb.SetOptions{Expires: expires, TTL: rexp})
+		// fmt.Println("token.go Create see err2: ", err)
 		if err != nil {
 			return err
 		}
 		_, _, err = tx.Set(info.GetAccess(), basicID, &buntdb.SetOptions{Expires: expires, TTL: aexp})
+
 		return err
 	})
+
+	// basicID = ""
+	// ti, err := ts.GetByAccess(context.TODO(), info.GetAccess())
+
+	// fmt.Println("token.go Create see err3: ", err)
+	// fmt.Println("token.go Create see tiiiiiiiii: ", ti)
+
+	return err
 }
 
 // remove key
@@ -97,6 +109,42 @@ func (ts *TokenStore) RemoveByAccess(ctx context.Context, access string) error {
 // RemoveByRefresh use the refresh token to delete the token information
 func (ts *TokenStore) RemoveByRefresh(ctx context.Context, refresh string) error {
 	return ts.remove(refresh)
+}
+
+func (ts *TokenStore) RemoveAllTokensByAccess(ctx context.Context, access string) error {
+	basicID, err := ts.getBasicID(access)
+	if err != nil && basicID == "" {
+		return err
+	}
+
+	ti, err := ts.getData(basicID)
+	if err != nil {
+		return err
+	}
+
+	err = ts.remove(access)
+	err = ts.remove(ti.GetRefresh())
+	err = ts.remove(basicID)
+
+	return err
+}
+
+func (ts *TokenStore) RemoveAllTokensByRefresh(ctx context.Context, refresh string) error {
+	basicID, err := ts.getBasicID(refresh)
+	if err != nil && basicID == "" {
+		return err
+	}
+
+	ti, err := ts.getData(basicID)
+	if err != nil {
+		return err
+	}
+
+	err = ts.remove(refresh)
+	err = ts.remove(ti.GetAccess())
+	err = ts.remove(basicID)
+
+	return err
 }
 
 func (ts *TokenStore) getData(key string) (oauth2.TokenInfo, error) {

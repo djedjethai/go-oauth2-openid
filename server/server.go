@@ -44,7 +44,7 @@ func NewServer(cfg *Config, manager oauth2.Manager) *Server {
 	}
 
 	srv.CustomizeTokenPayloadHandler = func(r *http.Request, data map[string]interface{}) (error, interface{}) {
-		return nil, ""
+		return nil, data
 	}
 
 	return srv
@@ -144,7 +144,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request, data map[string]i
 		return err
 	}
 
-	fmt.Println("server.go - token - pl: ", pl)
+	// fmt.Println("server.go - token - pl: ", pl)
 
 	w.WriteHeader(status)
 	// return json.NewEncoder(w).Encode(data)
@@ -324,7 +324,7 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 	// user authorization
 
 	userID, err := s.UserAuthorizationHandler(w, r)
-	fmt.Println("server.go - HandleAuthorizeRequest - userID: ", userID)
+	// fmt.Println("server.go - HandleAuthorizeRequest - userID: ", userID)
 	if err != nil {
 		return s.handleError(w, req, err)
 	} else if userID == "" {
@@ -484,8 +484,8 @@ func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *o
 	switch gt {
 	case oauth2.AuthorizationCode:
 		// TODO ......
-		fmt.Println("server.go - GetAccessToken - gt: ", gt)
-		fmt.Println("server.go - GetAccessToken - tgr: ", tgr)
+		// fmt.Println("server.go - GetAccessToken - gt: ", gt)
+		// fmt.Println("server.go - GetAccessToken - tgr: ", tgr)
 		ti, err := s.Manager.GenerateAccessToken(ctx, gt, tgr)
 		if err != nil {
 			switch err {
@@ -645,25 +645,6 @@ func (s *Server) HandleJWTokenAdminGetdata(ctx context.Context, r *http.Request,
 	return jwtAG.GetdataAdminOpenidJWToken(ctx, jwt)
 }
 
-// func (s *Server) HandleJWTokenGettokens(ctx context.Context, r *http.Request, jwt, keyID, secretKey, encoding string) (error, map[string]interface{}) {
-//
-// 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
-//
-// 	tokenDT := make(map[string]interface{})
-// 	err, tokenDT := jwtAG.GetTokensOpenidJWToken(ctx, jwt)
-// 	if err != nil {
-// 		return err, tokenDT
-// 	}
-//
-// 	// err = s.Manager.RemoveAllTokensByAccessToken(ctx, tokenDT["accessToken"].(string))
-// 	// err = s.Manager.RemoveAllTokensByRefreshToken(ctx, tokenDT["refreshToken"].(string))
-// 	// if err != nil {
-// 	// 	return err, tokenDT
-// 	// }
-//
-// 	return nil, tokenDT
-// }
-
 // UpsertJWTokenClient upsert JWToken matching the client APIserver
 func (s *Server) UpsertClientJWToken(ctx context.Context, id, JWToken string) error {
 	return s.Manager.UpsertClientJWToken(ctx, id, JWToken)
@@ -729,7 +710,7 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
-	fmt.Println("server.go - HandleTokenRequest - entry ----------------------------")
+	// fmt.Println("server.go - HandleTokenRequest - entry ----------------------------")
 
 	gt, tgr, err := s.ValidationTokenRequest(r)
 	if err != nil {
@@ -741,11 +722,11 @@ func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return s.tokenError(w, r, nil, err)
 	}
-	// fmt.Println("server.go - HandleTokenRequest - 2")
+	// fmt.Println("server.go - HandleTokenRequest - GetAccessToken: ")
 
-	fmt.Println("server.go - HandleTokenRequest - ti.GetScope(): ", ti.GetScope())
+	// fmt.Println("server.go - HandleTokenRequest - ti.GetScope(): ", ti.GetScope())
 	scopesArray := strings.Split(ti.GetScope(), ",")
-	fmt.Println("server.go - HandleTokenRequest - scopesArray: ", scopesArray)
+	// fmt.Println("server.go - HandleTokenRequest - scopesArray: ", scopesArray)
 	if len(scopesArray) > 0 {
 		for _, sc := range scopesArray {
 			// case openid is requested
@@ -761,7 +742,7 @@ func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) erro
 		}
 	}
 
-	// fmt.Println("server.go - HandleTokenRequest - end")
+	// fmt.Println("server.go - HandleTokenRequest - return the tokens(means no openid): ", ti)
 
 	// NOTE in case of token, that should return the tokens
 	return s.token(w, r, s.GetTokenData(ti), nil, ti)
