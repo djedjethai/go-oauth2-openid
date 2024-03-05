@@ -40,7 +40,7 @@ func NewServer(cfg *Config, manager oauth2.Manager) *Server {
 	}
 
 	srv.UserOpenidHandler = func(w http.ResponseWriter, r *http.Request) (map[string]interface{}, string, string, string, error) {
-		return nil, "key", "secretKey", "HS256", errors.ErrAccessDenied
+		return make(map[string]interface{}), "key", "secretKey", "HS256", errors.ErrAccessDenied
 	}
 
 	srv.CustomizeTokenPayloadHandler = func(r *http.Request, data map[string]interface{}) (error, interface{}) {
@@ -105,6 +105,8 @@ func (s *Server) redirect(w http.ResponseWriter, req *AuthorizeRequest, data map
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Pragma", "no-cache")
+
+		fmt.Println("server - server.go - redirect() - see data: ", data)
 
 		w.WriteHeader(http.StatusOK)
 		return json.NewEncoder(w).Encode(data)
@@ -296,7 +298,11 @@ func (s *Server) GetAuthorizeToken(ctx context.Context, req *AuthorizeRequest) (
 	tgr.CodeChallenge = req.CodeChallenge
 	tgr.CodeChallengeMethod = req.CodeChallengeMethod
 
-	return s.Manager.GenerateAuthToken(ctx, req.ResponseType, tgr)
+	ti, err := s.Manager.GenerateAuthToken(ctx, req.ResponseType, tgr)
+
+	// fmt.Println("server - server.go - GetAuthorizeToken() - see ti: ", ti, " see err: ", err)
+
+	return ti, err
 }
 
 // GetAuthorizeData get authorization response data
@@ -613,6 +619,8 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 
 	// in UserOpenidHandler a call to the db can be done to populate the user info
 	data, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
+
+	fmt.Println("server - server.go - HandleOpenidRequest() - data -----: ", data)
 
 	// s.Manager.SetJWTAccessGenerate("keyID", []byte("keySecret"), "HS256")
 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
