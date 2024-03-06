@@ -57,6 +57,7 @@ func (a *JWTAccessGenerate) CreateJWTAccessGenerate(kid string, key []byte, meth
 }
 
 // NOTE Token based on the UUID generated token
+// return an accesJWT and a refresh if isGenRefresh is true
 func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2.TokenInfo, isGenRefresh bool, ui oauth2.OpenidInfo) (string, string, error) {
 
 	if scope := ti.GetScope(); scope != "" {
@@ -203,40 +204,40 @@ func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenStrin
 	return data, errors.ErrInvalidJWToken
 }
 
-// GetdataOpenidJWToken return the user's data stored into the JWT
-func (a *JWTAccessGenerate) GetdataAdminOpenidJWToken(ctx context.Context, tokenString string) (map[string]interface{}, error) {
-
-	data := make(map[string]interface{})
-	if a.isHs() {
-
-		var secretKey = a.signedKey
-
-		token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return secretKey, nil
-		})
-		// if err != nil {
-		// 	return data, errors.ErrInvalidJWToken
-		// }
-
-		// Check if the token is valid
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			// Access openidInfo claims
-			// TODO maybe loop on the claim to get all datas
-			data["email"] = claims["sub"]
-			if openidInfo, ok := claims["openidInfo"].(map[string]interface{}); ok {
-				for k, v := range openidInfo {
-					data[k] = v
-				}
-			}
-		} else {
-			return data, errors.ErrInvalidJWToken
-		}
-
-		return data, nil
-	}
-
-	return data, errors.ErrInvalidJWToken
-}
+// // GetdataOpenidJWToken return the user's data stored into the JWT
+// func (a *JWTAccessGenerate) GetdataAdminOpenidJWToken(ctx context.Context, tokenString string) (map[string]interface{}, error) {
+//
+// 	data := make(map[string]interface{})
+// 	if a.isHs() {
+//
+// 		var secretKey = a.signedKey
+//
+// 		token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+// 			return secretKey, nil
+// 		})
+// 		// if err != nil {
+// 		// 	return data, errors.ErrInvalidJWToken
+// 		// }
+//
+// 		// Check if the token is valid
+// 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+// 			// Access openidInfo claims
+// 			// TODO maybe loop on the claim to get all datas
+// 			data["email"] = claims["sub"]
+// 			if openidInfo, ok := claims["openidInfo"].(map[string]interface{}); ok {
+// 				for k, v := range openidInfo {
+// 					data[k] = v
+// 				}
+// 			}
+// 		} else {
+// 			return data, errors.ErrInvalidJWToken
+// 		}
+//
+// 		return data, nil
+// 	}
+//
+// 	return data, errors.ErrInvalidJWToken
+// }
 
 // // GetOauthTokensFromOpenidJWToken ... ?
 // func (a *JWTAccessGenerate) GetOauthTokensFromOpenidJWToken(ctx context.Context, tokenString string) (oauth2.OpenidInfo, string, string, error) {

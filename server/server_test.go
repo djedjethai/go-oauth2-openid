@@ -31,6 +31,22 @@ var (
 	// sha2562 := sha256.Sum256([]byte(s256Challenge))
 	// fmt.Printf(base64.URLEncoding.EncodeToString(sha2562[:]))
 	s256ChallengeHash = "To2Xqv01cm16bC9Sf7KRRS8CO2SFss_HSMQOr3sdCDE="
+
+	// openid
+	keyIDDefault     = "key"
+	secretKeyDefault = "secretKey"
+	keyID            = "theKeyID"
+	secretKey        = "mySecretKey"
+	encoding         = "HS256"
+	jwtAge           = "35"
+	jwtName          = "Robert"
+	jwtCity          = "London"
+	jwtScope         = "read, openid"
+	jwtRole          = "user"
+
+	jwtAccessToken  string
+	jwtRefreshToken string
+	refreshToken    string
 )
 
 func init() {
@@ -403,102 +419,11 @@ func TestRefreshing(t *testing.T) {
 		Expect().Status(http.StatusOK)
 }
 
-// TODO
-// // test openid
-// func TestAuthorizeCodeWithChallengeS256OpenidDefault(t *testing.T) {
-// 	tsrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		testServer(t, w, r)
-// 	}))
-// 	defer tsrv.Close()
-//
-// 	e := httpexpect.New(t, tsrv.URL)
-//
-// 	csrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		switch r.URL.Path {
-// 		case "/oauth2":
-// 		}
-// 	}))
-// 	defer csrv.Close()
-//
-// 	manager.MapClientStorage(clientStore(csrv.URL, true))
-// 	srv = server.NewDefaultServer(manager)
-//
-// 	srv.SetModeAPI()
-//
-// 	srv.SetUserAuthorizationHandler(func(w http.ResponseWriter, r *http.Request) (userID string, err error) {
-// 		userID = "000000"
-// 		return
-// 	})
-//
-// 	srv.SetCustomizeTokenPayloadHandler(func(r *http.Request, data map[string]interface{}) (error, interface{}) {
-//
-// 		fmt.Println("In the SetCustomizeTokenPayloadHandler, data: ", data)
-//
-// 		return nil, data
-// 	})
-//
-// 	srv.SetClientInfoHandler(server.ClientFormHandler)
-//
-// 	resObj := e.GET("/authorize").
-// 		WithQuery("response_type", "code").
-// 		WithQuery("client_id", clientID).
-// 		WithQuery("scope", "read, openid").
-// 		WithQuery("state", "123").
-// 		WithQuery("redirect_uri", csrv.URL+"/oauth2").
-// 		WithQuery("code_challenge", s256ChallengeHash).
-// 		WithQuery("code_challenge_method", "S256").
-// 		Expect().Status(http.StatusOK)
-//
-// 	jsonBody := resObj.Body().Raw()
-//
-// 	jsonBody = strings.TrimSpace(jsonBody)
-//
-// 	// Decode the JSON string
-// 	var responseData map[string]interface{}
-// 	if err := json.Unmarshal([]byte(jsonBody), &responseData); err != nil {
-// 		fmt.Println("error unmarshal the err: ", err)
-// 	}
-//
-// 	code, ok := responseData["code"].(string)
-// 	if !ok {
-// 		fmt.Println("Failed to extract 'code' from JSON")
-// 	}
-//
-// 	// Log or use the extracted code as needed
-// 	fmt.Printf("Authorization Code: %s\n", code)
-//
-// 	resObj1 := e.POST("/token").
-// 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
-// 		WithFormField("code", code).
-// 		WithFormField("grant_type", "authorization_code").
-// 		WithFormField("client_id", clientID).
-// 		WithFormField("code_verifier", s256Challenge).
-// 		Expect().
-// 		Status(http.StatusOK).
-// 		JSON().Object()
-//
-// 	responseData = resObj1.Raw()
-//
-// 	// Extract the jwt_refresh_token and jwt_access_token
-// 	jwtRefreshToken, ok := responseData["jwt_refresh_token"].(string)
-// 	if !ok {
-// 		fmt.Println("Failed to extract 'jwt_refresh_token' from the response")
-// 	}
-//
-// 	jwtAccessToken, ok := responseData["jwt_access_token"].(string)
-// 	if !ok {
-// 		fmt.Println("Failed to extract 'jwt_access_token' from the response")
-// 	}
-//
-// 	// Use the extracted values as needed
-// 	fmt.Printf("JWT Refresh Token: %s\n", jwtRefreshToken)
-// 	fmt.Printf("JWT Access Token: %s\n", jwtAccessToken)
-//
-// 	// TODO extract the values from jwt and assert on it
-// 	// (the key and secretKey are the default one see server/server.go)
-// }
-
-func TestAuthorizeCodeWithChallengeS256OpenidCustomUserOpenidHandler(t *testing.T) {
+/*
+* Test openid
+ */
+// TestAuthorizeCodeWithChallengeS256OpenidDefault test openid with the default
+func TestAuthorizeCodeWithChallengeS256OpenidDefault(t *testing.T) {
 	tsrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		testServer(t, w, r)
 	}))
@@ -509,8 +434,6 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomUserOpenidHandler(t *testing.
 	csrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/oauth2":
-			// case "/jwtgetdata":
-
 		}
 	}))
 	defer csrv.Close()
@@ -525,36 +448,14 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomUserOpenidHandler(t *testing.
 		return
 	})
 
-	srv.SetCustomizeTokenPayloadHandler(func(r *http.Request, data map[string]interface{}) (error, interface{}) {
+	// srv.SetCustomizeTokenPayloadHandler(func(r *http.Request, data map[string]interface{}) (error, interface{}) {
 
-		fmt.Println("In the SetCustomizeTokenPayloadHandler, data: ", data)
+	// 	fmt.Println("In the SetCustomizeTokenPayloadHandler, data: ", data)
 
-		return nil, data
-	})
+	// 	return nil, data
+	// })
 
 	srv.SetClientInfoHandler(server.ClientFormHandler)
-
-	var keyID = "theKeyID"
-	var secretKey = "mySecretKey"
-	var encoding = "HS256"
-
-	// custom the jwt set the 'key', 'secretKey', encoding, error
-	// NOTE got user data from the http.Request
-	// NOTE and keys can be specific to role
-	// TODO see the default jwt expiration + test the customized way
-	srv.SetUserOpenidHandler(func(w http.ResponseWriter, r *http.Request) (map[string]interface{}, string, string, string, error) {
-		var err error = nil
-		// keyID = "theKeyID"
-		// secretKey = "mySecretKey"
-		// encoding = "HS256"
-
-		jwtInfo := make(map[string]interface{})
-		jwtInfo["name"] = "Robert"
-		jwtInfo["age"] = 35
-		jwtInfo["city"] = "London"
-
-		return jwtInfo, keyID, secretKey, encoding, err
-	})
 
 	resObj := e.GET("/authorize").
 		WithQuery("response_type", "code").
@@ -587,6 +488,7 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomUserOpenidHandler(t *testing.
 	resObj1 := e.POST("/token").
 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
 		WithFormField("code", code).
+		WithFormField("token_expiration", 1). // set the token validity to 1mn
 		WithFormField("grant_type", "authorization_code").
 		WithFormField("client_id", clientID).
 		WithFormField("code_verifier", s256Challenge).
@@ -596,51 +498,308 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomUserOpenidHandler(t *testing.
 
 	responseData = resObj1.Raw()
 
+	accessJWTexpiresIn, ok := responseData["expires_in"]
+	if !ok {
+		t.Error("Failed to extract 'expires_in' from the response")
+	}
+
 	// Extract the jwt_refresh_token and jwt_access_token
-	jwtRefreshToken, ok := responseData["jwt_refresh_token"].(string)
+	jwtRefreshToken, ok = responseData["jwt_refresh_token"].(string)
 	if !ok {
-		fmt.Println("Failed to extract 'jwt_refresh_token' from the response")
+		t.Error("Failed to extract 'jwt_refresh_token' from the response")
 	}
 
-	jwtAccessToken, ok := responseData["jwt_access_token"].(string)
+	jwtAccessToken, ok = responseData["jwt_access_token"].(string)
 	if !ok {
-		fmt.Println("Failed to extract 'jwt_access_token' from the response")
+		t.Error("Failed to extract 'jwt_access_token' from the response")
 	}
 
-	// Use the extracted values as needed
-	fmt.Printf("JWT Refresh Token: %s\n", jwtRefreshToken)
-	fmt.Printf("JWT Access Token: %s\n", jwtAccessToken)
+	// assert jwtAccessToken duration, here set to 60s
+	if accessJWTexpiresIn != float64(60) {
+		t.Error("invalid jwt_access_token duration")
+	}
 
-	// NOTE set that in a separate test ??????????????????????/
+	t.Logf("%#v\n", jwtAccessToken)
+	t.Logf("%#v\n", jwtRefreshToken)
+}
 
+func TestDefaultJWTokensValidity(t *testing.T) {
+
+	r := &http.Request{}
+	err := srv.HandleJWTokenValidation(context.TODO(), r, jwtAccessToken, keyIDDefault, secretKeyDefault, encoding)
+	if err != nil {
+		t.Error("error invalid jwt")
+	}
+
+	err = srv.HandleJWTokenValidation(context.TODO(), r, jwtRefreshToken, keyIDDefault, secretKeyDefault, encoding)
+	if err != nil {
+		t.Error("error invalid jwt")
+	}
+
+	// with invalid key
+	err = srv.HandleJWTokenValidation(context.TODO(), r, jwtRefreshToken, keyIDDefault, "invalidSecretKey", encoding)
+	if err == nil {
+		t.Error("jwt should be invalid")
+	}
+	if err.Error() != "invalid jwt token" {
+		t.Error("jwt should be invalid")
+	}
+}
+
+// Test registering the CustomUserOpenidHandler()
+func TestAuthorizeCodeWithChallengeS256OpenidCustomUserOpenidHandler(t *testing.T) {
+	tsrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testServer(t, w, r)
+	}))
+	defer tsrv.Close()
+
+	e := httpexpect.New(t, tsrv.URL)
+
+	csrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2":
+			// case "/jwtgetdata":
+
+		}
+	}))
+	defer csrv.Close()
+
+	manager.MapClientStorage(clientStore(csrv.URL, true))
+	srv = server.NewDefaultServer(manager)
+
+	srv.SetModeAPI()
+
+	srv.SetUserAuthorizationHandler(func(w http.ResponseWriter, r *http.Request) (userID string, err error) {
+		userID = "000000"
+		return
+	})
+
+	srv.SetCustomizeTokenPayloadHandler(func(r *http.Request, data map[string]interface{}) (error, interface{}) {
+		var ok bool
+		refreshToken, ok = data["refresh_token"].(string)
+		if !ok {
+			t.Error("Failed to extract 'refresh_token' from CustomizeTokenPayloadHandler")
+		}
+
+		return nil, data
+	})
+
+	srv.SetClientInfoHandler(server.ClientFormHandler)
+
+	// custom the jwt set the 'key', 'secretKey', encoding, error
+	// NOTE got user's data from the http.Request
+	// NOTE key and secretKey can be specific to role
+	srv.SetUserOpenidHandler(func(w http.ResponseWriter, r *http.Request) (map[string]interface{}, string, string, string, error) {
+		var err error = nil
+
+		jwtInfo := make(map[string]interface{})
+		jwtInfo["name"] = jwtName
+		jwtInfo["age"] = jwtAge
+		jwtInfo["city"] = jwtCity
+		// jwtInfo["role"] = jwtRole
+
+		return jwtInfo, keyID, secretKey, encoding, err
+	})
+
+	resObj := e.GET("/authorize").
+		WithQuery("response_type", "code").
+		WithQuery("client_id", clientID).
+		WithQuery("scope", "read, openid").
+		WithQuery("state", "123").
+		WithQuery("redirect_uri", csrv.URL+"/oauth2").
+		WithQuery("code_challenge", s256ChallengeHash).
+		WithQuery("code_challenge_method", "S256").
+		Expect().Status(http.StatusOK)
+
+	jsonBody := resObj.Body().Raw()
+
+	jsonBody = strings.TrimSpace(jsonBody)
+
+	// Decode the JSON string
+	var responseData map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonBody), &responseData); err != nil {
+		fmt.Println("error unmarshal the err: ", err)
+	}
+
+	code, ok := responseData["code"].(string)
+	if !ok {
+		fmt.Println("Failed to extract 'code' from JSON")
+	}
+
+	// Log or use the extracted code as needed
+	fmt.Printf("Authorization Code: %s\n", code)
+
+	// NOTE that the role is optional or can also be add in SetUserOpenidHandler()
+	resObj1 := e.POST("/token").
+		WithFormField("redirect_uri", csrv.URL+"/oauth2").
+		WithFormField("code", code).
+		WithFormField("role", jwtRole).
+		WithFormField("grant_type", "authorization_code").
+		WithFormField("client_id", clientID).
+		WithFormField("code_verifier", s256Challenge).
+		Expect().
+		Status(http.StatusOK).
+		JSON().Object()
+
+	responseData = resObj1.Raw()
+
+	accessJWTexpiresIn, ok := responseData["expires_in"]
+	if !ok {
+		t.Error("Failed to extract 'expires_in' from the response")
+	}
+
+	// Extract the jwt_refresh_token and jwt_access_token
+	jwtRefreshToken, ok = responseData["jwt_refresh_token"].(string)
+	if !ok {
+		t.Error("Failed to extract 'jwt_refresh_token' from the response")
+	}
+
+	jwtAccessToken, ok = responseData["jwt_access_token"].(string)
+	if !ok {
+		t.Error("Failed to extract 'jwt_access_token' from the response")
+	}
+
+	// assert jwtAccessToken duration, by default it's set to 2hours
+	if accessJWTexpiresIn != float64(7200) {
+		t.Error("invalid jwt_access_token duration")
+	}
+
+	t.Logf("%#v\n", jwtAccessToken)
+	t.Logf("%#v\n", jwtRefreshToken)
+}
+
+func TestCustomizedJWTokensValidity(t *testing.T) {
+
+	r := &http.Request{}
+	err := srv.HandleJWTokenValidation(context.TODO(), r, jwtAccessToken, keyID, secretKey, encoding)
+	if err != nil {
+		t.Error("error invalid jwt")
+	}
+
+	err = srv.HandleJWTokenValidation(context.TODO(), r, jwtRefreshToken, keyID, secretKey, encoding)
+	if err != nil {
+		t.Error("error invalid jwt")
+	}
+
+	// with invalid key
+	err = srv.HandleJWTokenValidation(context.TODO(), r, jwtRefreshToken, keyID, "invalidSecretKey", encoding)
+	if err == nil {
+		t.Error("jwt should be invalid")
+	}
+	if err.Error() != "invalid jwt token" {
+		t.Error("jwt should be invalid")
+	}
+}
+
+func TestJWTokensData(t *testing.T) {
 	// test jwtAccessToken data
-	// TODO test expire time, and assert
 	r := &http.Request{}
 	data, err := srv.HandleJWTokenGetdata(context.TODO(), r, jwtAccessToken, keyID, secretKey, encoding)
 	if err != nil {
 		fmt.Println("error getting data from jwt")
 	}
 
-	fmt.Println("seee the data from jwtAccessToken: ", data)
+	if data["age"] != jwtAge {
+		t.Error("jwt own invalid age")
+	}
+	if data["name"] != jwtName {
+		t.Error("jwt own invalid name")
+	}
+	if data["city"] != jwtCity {
+		t.Error("jwt own invalid city")
+	}
+	if data["scope"] != jwtScope {
+		t.Error("jwt own invalid scope")
+	}
+	if data["role"] != jwtRole {
+		t.Error("jwt own invalid role")
+	}
 
-	// TODO test expire time, and assert
 	data, err = srv.HandleJWTokenGetdata(context.TODO(), r, jwtRefreshToken, keyID, secretKey, encoding)
 	if err != nil {
 		fmt.Println("error getting data from jwt")
 	}
 
-	fmt.Println("seee the data from jwtRefreshToken: ", data)
-
-	// TODO test jwt token validity.......
-
+	if data["age"] != jwtAge {
+		t.Error("jwt own invalid age")
+	}
+	if data["name"] != jwtName {
+		t.Error("jwt own invalid name")
+	}
+	if data["city"] != jwtCity {
+		t.Error("jwt own invalid city")
+	}
+	if data["scope"] != jwtScope {
+		t.Error("jwt own invalid scope")
+	}
+	if data["role"] != jwtRole {
+		t.Error("jwt own invalid role")
+	}
 }
 
-// get jwt
-// add SetCostumizeToken
-// refresh jwt
-// valid jwt
-// voir l'histoire ou j'ajoute le jwt to the client ????
-// test return the token(instead of redirect)
+func TestRefreshJWT(t *testing.T) {
+	// Create a new request with the refresh_token header
+	req, err := http.NewRequest("GET", "http://example.com", nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+
+	// set the request
+	req.Header.Set("refresh_token", refreshToken)
+	req.Header.Set("jwt_refresh_token", jwtRefreshToken)
+	req.Header.Set("jwt_access_token", jwtAccessToken)
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		err := srv.RefreshOpenidToken(context.TODO(), w, r)
+		if err != nil {
+			fmt.Println("error from refresh openid token")
+		}
+	}
+
+	recorder := httptest.NewRecorder()
+
+	handler(recorder, req)
+
+	var data map[string]interface{}
+	err = json.NewDecoder(recorder.Body).Decode(&data)
+	if err != nil {
+		fmt.Println("Error decoding JSON:", err)
+		return
+	}
+
+	accessJWTexpiresInRefreshed, ok := data["expires_in"]
+	if !ok {
+		t.Error("Failed to extract 'expires_in' from the response")
+	}
+
+	// Extract the jwt_refresh_token and jwt_access_token
+	jwtRefreshTokenRefreshed, ok := data["jwt_refresh_token"].(string)
+	if !ok {
+		t.Error("Failed to extract 'jwt_refresh_token' from the response")
+	}
+
+	jwtAccessTokenRefreshed, ok := data["jwt_access_token"].(string)
+	if !ok {
+		t.Error("Failed to extract 'jwt_access_token' from the response")
+	}
+
+	if jwtAccessToken == jwtAccessTokenRefreshed {
+		t.Error("jwtAccessToken as not been refreshed")
+	}
+
+	if jwtRefreshToken == jwtRefreshTokenRefreshed {
+		t.Error("jwtRefreshToken as not been refreshed")
+	}
+
+	// assert jwtAccessToken duration, by default it's set to 2hours
+	if accessJWTexpiresInRefreshed != float64(7200) {
+		t.Error("invalid jwt_access_token duration")
+	}
+}
+
+// TODO jwt for apiservices
+// TODO srv.HandleJWTokenAdminGetdata() ?? DELETE THE METHOD FROM server
 
 // validation access token
 func validationAccessToken(t *testing.T, accessToken string) {

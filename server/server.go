@@ -646,12 +646,15 @@ func (s *Server) HandleJWTokenGetdata(ctx context.Context, r *http.Request, jwt,
 	return jwtAG.GetdataOpenidJWToken(ctx, jwt)
 }
 
-func (s *Server) HandleJWTokenAdminGetdata(ctx context.Context, r *http.Request, jwt, keyID, secretKey, encoding string) (map[string]interface{}, error) {
-
-	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
-
-	return jwtAG.GetdataAdminOpenidJWToken(ctx, jwt)
-}
+// // TODO look like this is useless has it's the same as above...
+// // TODO remove...
+// func (s *Server) HandleJWTokenAdminGetdata(ctx context.Context, r *http.Request, jwt, keyID, secretKey, encoding string) (map[string]interface{}, error) {
+//
+// 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
+//
+// 	// return jwtAG.GetdataAdminOpenidJWToken(ctx, jwt)
+// 	return jwtAG.GetdataOpenidJWToken(ctx, jwt)
+// }
 
 // UpsertJWTokenClient upsert JWToken matching the client APIserver
 func (s *Server) UpsertClientJWToken(ctx context.Context, id, JWToken string) error {
@@ -660,7 +663,6 @@ func (s *Server) UpsertClientJWToken(ctx context.Context, id, JWToken string) er
 
 // RefreshOpenidToken valid and refresh(if not expire) the jwtokens
 func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-
 	_, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
 
