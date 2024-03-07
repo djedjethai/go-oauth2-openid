@@ -12,8 +12,9 @@ import (
 )
 
 // NewDefaultManager create to default authorization management instance
-func NewDefaultManager() *Manager {
-	m := NewManager()
+func NewDefaultManager(cd ...int) *Manager {
+	m := NewManager(cd...)
+
 	// default implementation
 	m.MapAuthorizeGenerate(generates.NewAuthorizeGenerate())
 	m.MapAccessGenerate(generates.NewAccessGenerate())
@@ -23,7 +24,9 @@ func NewDefaultManager() *Manager {
 }
 
 // NewManager create to authorization management instance
-func NewManager() *Manager {
+func NewManager(cd ...int) *Manager {
+	NewCodeDuration(cd...)
+
 	return &Manager{
 		gtcfg:       make(map[oauth2.GrantType]*Config),
 		validateURI: DefaultValidateURI,
@@ -54,7 +57,7 @@ func (m *Manager) grantConfig(gt oauth2.GrantType, role ...string) *Config {
 		if len(role) > 0 {
 			switch role[0] {
 			case "APIserver":
-				return DefaultAuthorizeCodeAPIServerTokenCfg
+				return DefaultAuthorizeCodeAPIServerCfg
 			}
 		}
 		return DefaultAuthorizeCodeTokenCfg

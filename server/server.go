@@ -275,6 +275,8 @@ func (s *Server) GetAuthorizeToken(ctx context.Context, req *AuthorizeRequest) (
 		}
 	}
 
+	// fmt.Println("server - server.go - GetAuthorizeToken() - req.AccessTokenExp: ----------: ", req.AccessTokenExp)
+
 	tgr := &oauth2.TokenGenerateRequest{
 		ClientID:       req.ClientID,
 		UserID:         req.UserID,
@@ -341,8 +343,6 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 
 	// specify the scope of authorization
 	if fn := s.AuthorizeScopeHandler; fn != nil {
-
-		// fmt.Println("server.go - HandleAuthorizeRequest - HandleAuthorizeRequest is not nil.....")
 		scope, err := fn(w, r)
 		if err != nil {
 			return err
@@ -359,8 +359,6 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 		}
 		req.AccessTokenExp = exp
 	}
-
-	// fmt.Println("server.go - HandleAuthorizeRequest - befrore.........: ")
 
 	ti, err := s.GetAuthorizeToken(ctx, req)
 	if err != nil {

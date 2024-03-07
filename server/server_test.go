@@ -19,9 +19,10 @@ import (
 )
 
 var (
-	srv          *server.Server
-	tsrv         *httptest.Server
-	manager      *manage.Manager
+	srv     *server.Server
+	tsrv    *httptest.Server
+	manager *manage.Manager
+	// customManager *manage.Manager
 	csrv         *httptest.Server
 	clientID     = "111111"
 	clientSecret = "11111111"
@@ -47,6 +48,7 @@ var (
 	jwtAccessToken  string
 	jwtRefreshToken string
 	refreshToken    string
+	codeTestExp     string
 )
 
 func init() {
@@ -792,7 +794,7 @@ func TestRefreshJWT(t *testing.T) {
 		t.Error("jwtRefreshToken as not been refreshed")
 	}
 
-	// assert jwtAccessToken duration, by default it's set to 2hours
+	// assert jwtAccessToken duration(for non APIServer role), by default it's set to 2hours
 	if accessJWTexpiresInRefreshed != float64(7200) {
 		t.Error("invalid jwt_access_token duration")
 	}
@@ -800,6 +802,269 @@ func TestRefreshJWT(t *testing.T) {
 
 // TODO jwt for apiservices
 // TODO srv.HandleJWTokenAdminGetdata() ?? DELETE THE METHOD FROM server
+// TODO !!!! instead of having all methods create a new jwt.Handler maybee separate this logic ??
+// TODO see what's happend in the oauth_token when cutomer logout ??
+
+func TestAuthorizeCodeWithChallengeS256OpenidDefaultForAPIServer(t *testing.T) {
+	tsrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testServer(t, w, r)
+	}))
+	defer tsrv.Close()
+
+	e := httpexpect.New(t, tsrv.URL)
+
+	csrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2":
+		}
+	}))
+	defer csrv.Close()
+
+	manager.MapClientStorage(clientStore(csrv.URL, true))
+	srv = server.NewDefaultServer(manager)
+
+	srv.SetModeAPI()
+
+	srv.SetUserAuthorizationHandler(func(w http.ResponseWriter, r *http.Request) (userID string, err error) {
+		userID = "000000"
+		return
+	})
+
+	srv.SetClientInfoHandler(server.ClientFormHandler)
+
+	resObj := e.GET("/authorize").
+		WithQuery("response_type", "code").
+		WithQuery("client_id", clientID).
+		WithQuery("scope", "read, openid").
+		WithQuery("state", "123").
+		WithQuery("redirect_uri", csrv.URL+"/oauth2").
+		WithQuery("code_challenge", s256ChallengeHash).
+		WithQuery("code_challenge_method", "S256").
+		Expect().Status(http.StatusOK)
+
+	jsonBody := resObj.Body().Raw()
+
+	jsonBody = strings.TrimSpace(jsonBody)
+
+	// Decode the JSON string
+	var responseData map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonBody), &responseData); err != nil {
+		fmt.Println("error unmarshal the err: ", err)
+	}
+
+	code, ok := responseData["code"].(string)
+	if !ok {
+		fmt.Println("Failed to extract 'code' from JSON")
+	}
+
+	// Log or use the extracted code as needed
+	fmt.Printf("Authorization Code: %s\n", code)
+
+	resObj1 := e.POST("/token").
+		WithFormField("redirect_uri", csrv.URL+"/oauth2").
+		WithFormField("code", code).
+		WithFormField("role", "APIserver"). // will set the token duration specific for APIserver
+		WithFormField("grant_type", "authorization_code").
+		WithFormField("client_id", clientID).
+		WithFormField("code_verifier", s256Challenge).
+		Expect().
+		Status(http.StatusOK).
+		JSON().Object()
+
+	responseData = resObj1.Raw()
+
+	accessJWTexpiresIn, ok := responseData["expires_in"]
+	if !ok {
+		t.Error("Failed to extract 'expires_in' from the response")
+	}
+
+	// accessJWTexpiresIn is seconds, set it to days
+	days := accessJWTexpiresIn.(float64) / (24 * 60 * 60)
+
+	// the access token duration for APIServer role, by default is set to 15 days
+	if days != float64(15) {
+		t.Error("invalid jwt_access_token duration")
+	}
+
+	// the refresh token duration for APIServer role, by default is set to 180 days
+
+	t.Logf("%#v\n", jwtAccessToken)
+	t.Logf("%#v\n", jwtRefreshToken)
+}
+
+func TestAuthorizeCodeWithChallengeS256OpenidCustomAPIServerExp(t *testing.T) {
+	manager = manage.NewDefaultManager(24, 24*30, 24*60, 24*90)
+	manager.MustTokenStorage(store.NewMemoryTokenStore())
+
+	tsrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testServer(t, w, r)
+	}))
+	defer tsrv.Close()
+
+	e := httpexpect.New(t, tsrv.URL)
+
+	csrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2":
+		}
+	}))
+	defer csrv.Close()
+
+	manager.MapClientStorage(clientStore(csrv.URL, true))
+	srv = server.NewDefaultServer(manager)
+
+	srv.SetModeAPI()
+
+	srv.SetUserAuthorizationHandler(func(w http.ResponseWriter, r *http.Request) (userID string, err error) {
+		userID = "000000"
+		return
+	})
+
+	srv.SetClientInfoHandler(server.ClientFormHandler)
+
+	resObj := e.GET("/authorize").
+		WithQuery("response_type", "code").
+		WithQuery("client_id", clientID).
+		WithQuery("scope", "read, openid").
+		WithQuery("state", "123").
+		WithQuery("redirect_uri", csrv.URL+"/oauth2").
+		WithQuery("code_challenge", s256ChallengeHash).
+		WithQuery("code_challenge_method", "S256").
+		Expect().Status(http.StatusOK)
+
+	jsonBody := resObj.Body().Raw()
+
+	jsonBody = strings.TrimSpace(jsonBody)
+
+	// Decode the JSON string
+	var responseData map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonBody), &responseData); err != nil {
+		fmt.Println("error unmarshal the err: ", err)
+	}
+
+	code, ok := responseData["code"].(string)
+	if !ok {
+		fmt.Println("Failed to extract 'code' from JSON")
+	}
+
+	// Log or use the extracted code as needed
+	fmt.Printf("Authorization Code: %s\n", code)
+
+	resObj1 := e.POST("/token").
+		WithFormField("redirect_uri", csrv.URL+"/oauth2").
+		WithFormField("code", code).
+		WithFormField("role", "APIserver"). // will set the token duration specific for APIserver
+		WithFormField("grant_type", "authorization_code").
+		WithFormField("client_id", clientID).
+		WithFormField("code_verifier", s256Challenge).
+		Expect().
+		Status(http.StatusOK).
+		JSON().Object()
+
+	responseData = resObj1.Raw()
+
+	accessJWTexpiresIn, ok := responseData["expires_in"]
+	if !ok {
+		t.Error("Failed to extract 'expires_in' from the response")
+	}
+
+	// accessJWTexpiresIn is seconds, set it to days
+	days := accessJWTexpiresIn.(float64) / (24 * 60 * 60)
+
+	// assert jwtAccessToken duration, here set to 60s
+	// the access token duration for APIServer role has been set to 60day
+	if days != float64(60) {
+		t.Error("invalid jwt_access_token duration")
+	}
+
+	t.Logf("%#v\n", jwtAccessToken)
+	t.Logf("%#v\n", jwtRefreshToken)
+}
+
+func TestAuthorizeCodeWithChallengeS256OpenidCustomTokenExp(t *testing.T) {
+	tsrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testServer(t, w, r)
+	}))
+	defer tsrv.Close()
+
+	e := httpexpect.New(t, tsrv.URL)
+
+	csrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2":
+		}
+	}))
+	defer csrv.Close()
+
+	manager.MapClientStorage(clientStore(csrv.URL, true))
+	srv = server.NewDefaultServer(manager)
+
+	srv.SetModeAPI()
+
+	srv.SetUserAuthorizationHandler(func(w http.ResponseWriter, r *http.Request) (userID string, err error) {
+		userID = "000000"
+		return
+	})
+
+	srv.SetClientInfoHandler(server.ClientFormHandler)
+
+	resObj := e.GET("/authorize").
+		WithQuery("response_type", "code").
+		WithQuery("client_id", clientID).
+		WithQuery("scope", "read, openid").
+		WithQuery("state", "123").
+		WithQuery("redirect_uri", csrv.URL+"/oauth2").
+		WithQuery("code_challenge", s256ChallengeHash).
+		WithQuery("code_challenge_method", "S256").
+		Expect().Status(http.StatusOK)
+
+	jsonBody := resObj.Body().Raw()
+
+	jsonBody = strings.TrimSpace(jsonBody)
+
+	// Decode the JSON string
+	var responseData map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonBody), &responseData); err != nil {
+		fmt.Println("error unmarshal the err: ", err)
+	}
+
+	code, ok := responseData["code"].(string)
+	if !ok {
+		fmt.Println("Failed to extract 'code' from JSON")
+	}
+
+	// Log or use the extracted code as needed
+	fmt.Printf("Authorization Code: %s\n", code)
+
+	resObj1 := e.POST("/token").
+		WithFormField("redirect_uri", csrv.URL+"/oauth2").
+		WithFormField("code", code).
+		WithFormField("role", "user").
+		WithFormField("grant_type", "authorization_code").
+		WithFormField("client_id", clientID).
+		WithFormField("code_verifier", s256Challenge).
+		Expect().
+		Status(http.StatusOK).
+		JSON().Object()
+
+	responseData = resObj1.Raw()
+
+	accessJWTexpiresIn, ok := responseData["expires_in"]
+	if !ok {
+		t.Error("Failed to extract 'expires_in' from the response")
+	}
+
+	// accessJWTexpiresIn is seconds, set it to days
+	days := accessJWTexpiresIn.(float64) / (24 * 60 * 60)
+
+	// the access token duration for not APIServer role has been set to 1day(in the previous test)
+	if days != float64(1) {
+		t.Error("invalid jwt_access_token duration")
+	}
+
+	t.Logf("%#v\n", jwtAccessToken)
+	t.Logf("%#v\n", jwtRefreshToken)
+}
 
 // validation access token
 func validationAccessToken(t *testing.T, accessToken string) {
