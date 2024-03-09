@@ -216,9 +216,6 @@ func (a *JWTAccessGenerate) GetdataAdminOpenidJWToken(ctx context.Context, token
 		token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			return secretKey, nil
 		})
-		// if err != nil {
-		// 	return data, errors.ErrInvalidJWToken
-		// }
 
 		// Check if the token is valid
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {

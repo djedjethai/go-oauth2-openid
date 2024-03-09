@@ -19,10 +19,9 @@ import (
 )
 
 var (
-	srv     *server.Server
-	tsrv    *httptest.Server
-	manager *manage.Manager
-	// customManager *manage.Manager
+	srv          *server.Server
+	tsrv         *httptest.Server
+	manager      *manage.Manager
 	csrv         *httptest.Server
 	clientID     = "111111"
 	clientSecret = "11111111"
@@ -450,13 +449,6 @@ func TestAuthorizeCodeWithChallengeS256OpenidDefault(t *testing.T) {
 		return
 	})
 
-	// srv.SetCustomizeTokenPayloadHandler(func(r *http.Request, data map[string]interface{}) (error, interface{}) {
-
-	// 	fmt.Println("In the SetCustomizeTokenPayloadHandler, data: ", data)
-
-	// 	return nil, data
-	// })
-
 	srv.SetClientInfoHandler(server.ClientFormHandler)
 
 	resObj := e.GET("/authorize").
@@ -483,9 +475,6 @@ func TestAuthorizeCodeWithChallengeS256OpenidDefault(t *testing.T) {
 	if !ok {
 		fmt.Println("Failed to extract 'code' from JSON")
 	}
-
-	// Log or use the extracted code as needed
-	// fmt.Printf("Authorization Code: %s\n", code)
 
 	resObj1 := e.POST("/token").
 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
@@ -627,9 +616,6 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomUserOpenidHandler(t *testing.
 	if !ok {
 		fmt.Println("Failed to extract 'code' from JSON")
 	}
-
-	// Log or use the extracted code as needed
-	// fmt.Printf("Authorization Code: %s\n", code)
 
 	// NOTE that the role is optional or can also be add in SetUserOpenidHandler()
 	resObj1 := e.POST("/token").
@@ -800,10 +786,6 @@ func TestRefreshJWT(t *testing.T) {
 	}
 }
 
-// TODO srv.HandleJWTokenAdminGetdata() ?? DELETE THE METHOD FROM server
-// TODO !!!! instead of having all methods create a new jwt.Handler maybee separate this logic ??
-// TODO see what's happend in the oauth_token when cutomer logout ??
-
 func TestAuthorizeCodeWithChallengeS256OpenidDefaultForAPIServer(t *testing.T) {
 	tsrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		testServer(t, w, r)
@@ -856,9 +838,6 @@ func TestAuthorizeCodeWithChallengeS256OpenidDefaultForAPIServer(t *testing.T) {
 		fmt.Println("Failed to extract 'code' from JSON")
 	}
 
-	// Log or use the extracted code as needed
-	// fmt.Printf("Authorization Code: %s\n", code)
-
 	resObj1 := e.POST("/token").
 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
 		WithFormField("code", code).
@@ -884,8 +863,6 @@ func TestAuthorizeCodeWithChallengeS256OpenidDefaultForAPIServer(t *testing.T) {
 	if days != float64(15) {
 		t.Error("invalid jwt_access_token duration")
 	}
-
-	// the refresh token duration for APIServer role, by default is set to 180 days
 
 	t.Logf("%#v\n", jwtAccessToken)
 	t.Logf("%#v\n", jwtRefreshToken)
@@ -952,9 +929,6 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomAPIServerExp(t *testing.T) {
 	if !ok {
 		fmt.Println("Failed to extract 'code' from JSON")
 	}
-
-	// Log or use the extracted code as needed
-	// fmt.Printf("Authorization Code: %s\n", code)
 
 	resObj1 := e.POST("/token").
 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
@@ -1039,9 +1013,6 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomTokenExp(t *testing.T) {
 		fmt.Println("Failed to extract 'code' from JSON")
 	}
 
-	// Log or use the extracted code as needed
-	// fmt.Printf("Authorization Code: %s\n", code)
-
 	resObj1 := e.POST("/token").
 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
 		WithFormField("code", code).
@@ -1063,7 +1034,6 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomTokenExp(t *testing.T) {
 	// accessJWTexpiresIn is seconds, set it to days
 	days := accessJWTexpiresIn.(float64) / (24 * 60 * 60)
 
-	// the access token duration for not APIServer role has been set to 1day(in the previous test)
 	if days != float64(1) {
 		t.Error("invalid jwt_access_token duration")
 	}
@@ -1088,3 +1058,7 @@ func validationAccessToken(t *testing.T, accessToken string) {
 		t.Error("invalid access token")
 	}
 }
+
+// TODO srv.HandleJWTokenAdminGetdata() Add tests for this method
+// TODO !!!! instead of having all methods create a new jwt.Handler maybee separate this logic ??
+// TODO see what's happend in the oauth_token when cutomer logout ??
