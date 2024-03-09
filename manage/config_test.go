@@ -32,7 +32,14 @@ func TestNewDefaultManagerWithCodeDuration(t *testing.T) {
 	var APIServerAccess int = 24 * 60
 	var APIServerRefresh int = 24 * 90
 
-	var _ = NewDefaultManager(tokenAccess, tokenRefresh, APIServerAccess, APIServerRefresh)
+	mg := ManagerConfig{
+		AuthorizeCodeTokenCfgAccess:      tokenAccess,
+		AuthorizeCodeTokenCfgRefresh:     tokenRefresh,
+		AuthorizeCodeAPIServerCfgAccess:  APIServerAccess,
+		AuthorizeCodeAPIServerCfgRefresh: APIServerRefresh,
+	}
+
+	_ = NewDefaultManager(mg)
 
 	if DefaultAuthorizeCodeTokenCfg.AccessTokenExp != time.Hour*time.Duration(tokenAccess) {
 		t.Error("invalid default access token")

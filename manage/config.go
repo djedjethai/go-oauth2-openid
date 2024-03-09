@@ -43,6 +43,31 @@ var (
 	DefaultRefreshTokenCfg           = &RefreshingConfig{IsGenerateRefresh: true, IsRemoveAccess: true, IsRemoveRefreshing: true}
 )
 
+// ManagerConfig manage the configs for the manager
+type ManagerConfig struct {
+	AuthorizeCodeTokenCfgAccess      int
+	AuthorizeCodeTokenCfgRefresh     int
+	AuthorizeCodeAPIServerCfgAccess  int
+	AuthorizeCodeAPIServerCfgRefresh int
+}
+
+func (mc ManagerConfig) SetConfigs() {
+	if mc.AuthorizeCodeTokenCfgAccess > 0 &&
+		mc.AuthorizeCodeTokenCfgRefresh > 0 &&
+		mc.AuthorizeCodeAPIServerCfgAccess > 0 &&
+		mc.AuthorizeCodeAPIServerCfgRefresh > 0 {
+		NewCodeDuration(
+			mc.AuthorizeCodeTokenCfgAccess,
+			mc.AuthorizeCodeTokenCfgRefresh,
+			mc.AuthorizeCodeAPIServerCfgAccess,
+			mc.AuthorizeCodeAPIServerCfgRefresh,
+		)
+
+	} else {
+		NewCodeDuration(0, 0, 0, 0)
+	}
+}
+
 const (
 	authorizeCodeTokenCfgAccessDefault      int = 2
 	authorizeCodeTokenCfgRefreshDefault     int = 24 * 15
@@ -50,38 +75,23 @@ const (
 	authorizeCodeAPIServerCfgRefreshDefault int = 24 * 180
 )
 
-type CodeDuration struct{}
+// NewCodeDuration set the tokens duration configs
+func NewCodeDuration(at, rt, aa, ar int) {
+	tc := NewTokenConfig(at, rt)
+	DefaultAuthorizeCodeTokenCfg = &Config{
+		AccessTokenExp:    time.Hour * time.Duration(tc.authorizeCodeTokenCfgAccess),
+		RefreshTokenExp:   time.Hour * time.Duration(tc.authorizeCodeTokenCfgRefresh),
+		IsGenerateRefresh: true}
 
-func NewCodeDuration(v ...int) {
-	if len(v) == 4 {
-		tc := NewTokenConfig(v[0], v[1])
-		DefaultAuthorizeCodeTokenCfg = &Config{
-			AccessTokenExp:    time.Hour * time.Duration(tc.authorizeCodeTokenCfgAccess),
-			RefreshTokenExp:   time.Hour * time.Duration(tc.authorizeCodeTokenCfgRefresh),
-			IsGenerateRefresh: true}
+	ac := NewAPIServerConfig(aa, ar)
+	DefaultAuthorizeCodeAPIServerCfg = &Config{
+		AccessTokenExp:    time.Hour * time.Duration(ac.authorizeCodeAPIServerCfgAccess),
+		RefreshTokenExp:   time.Hour * time.Duration(ac.authorizeCodeAPIServerCfgRefresh),
+		IsGenerateRefresh: true}
 
-		ac := NewAPIServerConfig(v[2], v[3])
-		DefaultAuthorizeCodeAPIServerCfg = &Config{
-			AccessTokenExp:    time.Hour * time.Duration(ac.authorizeCodeAPIServerCfgAccess),
-			RefreshTokenExp:   time.Hour * time.Duration(ac.authorizeCodeAPIServerCfgRefresh),
-			IsGenerateRefresh: true}
-
-	} else {
-		tc := NewTokenConfig(0, 0)
-		DefaultAuthorizeCodeTokenCfg = &Config{
-			AccessTokenExp:    time.Hour * time.Duration(tc.authorizeCodeTokenCfgAccess),
-			RefreshTokenExp:   time.Hour * time.Duration(tc.authorizeCodeTokenCfgRefresh),
-			IsGenerateRefresh: true}
-
-		ac := NewAPIServerConfig(0, 0)
-		DefaultAuthorizeCodeAPIServerCfg = &Config{
-			AccessTokenExp:    time.Hour * time.Duration(ac.authorizeCodeAPIServerCfgAccess),
-			RefreshTokenExp:   time.Hour * time.Duration(ac.authorizeCodeAPIServerCfgRefresh),
-			IsGenerateRefresh: true}
-
-	}
 }
 
+// tokenConfig are duration for the token, means user accounts
 type tokenConfig struct {
 	authorizeCodeTokenCfgAccess  int
 	authorizeCodeTokenCfgRefresh int
@@ -112,6 +122,7 @@ func (t *tokenConfig) setAuthorizeCodeTokenCfgRefresh(d int) {
 	}
 }
 
+// apiServerConfig are duration for the APIServer, means the api's servers account
 type apiServerConfig struct {
 	authorizeCodeAPIServerCfgAccess  int
 	authorizeCodeAPIServerCfgRefresh int

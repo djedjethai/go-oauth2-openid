@@ -106,7 +106,7 @@ func (s *Server) redirect(w http.ResponseWriter, req *AuthorizeRequest, data map
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Pragma", "no-cache")
 
-		fmt.Println("server - server.go - redirect() - see data: ", data)
+		// fmt.Println("server - server.go - redirect() - see data: ", data)
 
 		w.WriteHeader(http.StatusOK)
 		return json.NewEncoder(w).Encode(data)
@@ -618,7 +618,7 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 	// in UserOpenidHandler a call to the db can be done to populate the user info
 	data, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
 
-	fmt.Println("server - server.go - HandleOpenidRequest() - data -----: ", data)
+	// fmt.Println("server - server.go - HandleOpenidRequest() - data -----: ", data)
 
 	// s.Manager.SetJWTAccessGenerate("keyID", []byte("keySecret"), "HS256")
 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)

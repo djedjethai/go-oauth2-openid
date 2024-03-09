@@ -2,7 +2,6 @@ package manage
 
 import (
 	"context"
-	// "fmt"
 	"time"
 
 	oauth2 "github.com/djedjethai/go-oauth2-openid"
@@ -12,8 +11,8 @@ import (
 )
 
 // NewDefaultManager create to default authorization management instance
-func NewDefaultManager(cd ...int) *Manager {
-	m := NewManager(cd...)
+func NewDefaultManager(mc ...ManagerConfig) *Manager {
+	m := NewManager(mc...)
 
 	// default implementation
 	m.MapAuthorizeGenerate(generates.NewAuthorizeGenerate())
@@ -24,8 +23,13 @@ func NewDefaultManager(cd ...int) *Manager {
 }
 
 // NewManager create to authorization management instance
-func NewManager(cd ...int) *Manager {
-	NewCodeDuration(cd...)
+func NewManager(mc ...ManagerConfig) *Manager {
+	// set the Manager configuration
+	if len(mc) > 0 {
+		mc[0].SetConfigs()
+	} else {
+		ManagerConfig{}.SetConfigs()
+	}
 
 	return &Manager{
 		gtcfg:       make(map[oauth2.GrantType]*Config),
@@ -176,7 +180,7 @@ func (m *Manager) GetClient(ctx context.Context, clientID string) (cli oauth2.Cl
 	return
 }
 
-// GetClient get the client information
+// UpsertClientJWToken aim to store JWT into clientStore Account for APIServer
 func (m *Manager) UpsertClientJWToken(ctx context.Context, clientID, JWToken string) (err error) {
 	err = m.clientStore.UpsertClientJWToken(ctx, clientID, JWToken)
 	if err != nil {

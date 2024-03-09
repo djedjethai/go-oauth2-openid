@@ -485,7 +485,7 @@ func TestAuthorizeCodeWithChallengeS256OpenidDefault(t *testing.T) {
 	}
 
 	// Log or use the extracted code as needed
-	fmt.Printf("Authorization Code: %s\n", code)
+	// fmt.Printf("Authorization Code: %s\n", code)
 
 	resObj1 := e.POST("/token").
 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
@@ -629,7 +629,7 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomUserOpenidHandler(t *testing.
 	}
 
 	// Log or use the extracted code as needed
-	fmt.Printf("Authorization Code: %s\n", code)
+	// fmt.Printf("Authorization Code: %s\n", code)
 
 	// NOTE that the role is optional or can also be add in SetUserOpenidHandler()
 	resObj1 := e.POST("/token").
@@ -800,7 +800,6 @@ func TestRefreshJWT(t *testing.T) {
 	}
 }
 
-// TODO jwt for apiservices
 // TODO srv.HandleJWTokenAdminGetdata() ?? DELETE THE METHOD FROM server
 // TODO !!!! instead of having all methods create a new jwt.Handler maybee separate this logic ??
 // TODO see what's happend in the oauth_token when cutomer logout ??
@@ -858,7 +857,7 @@ func TestAuthorizeCodeWithChallengeS256OpenidDefaultForAPIServer(t *testing.T) {
 	}
 
 	// Log or use the extracted code as needed
-	fmt.Printf("Authorization Code: %s\n", code)
+	// fmt.Printf("Authorization Code: %s\n", code)
 
 	resObj1 := e.POST("/token").
 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
@@ -893,7 +892,14 @@ func TestAuthorizeCodeWithChallengeS256OpenidDefaultForAPIServer(t *testing.T) {
 }
 
 func TestAuthorizeCodeWithChallengeS256OpenidCustomAPIServerExp(t *testing.T) {
-	manager = manage.NewDefaultManager(24, 24*30, 24*60, 24*90)
+	mc := manage.ManagerConfig{
+		AuthorizeCodeTokenCfgAccess:      24,
+		AuthorizeCodeTokenCfgRefresh:     24 * 30,
+		AuthorizeCodeAPIServerCfgAccess:  24 * 60,
+		AuthorizeCodeAPIServerCfgRefresh: 24 * 90,
+	}
+
+	manager = manage.NewDefaultManager(mc)
 	manager.MustTokenStorage(store.NewMemoryTokenStore())
 
 	tsrv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -948,7 +954,7 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomAPIServerExp(t *testing.T) {
 	}
 
 	// Log or use the extracted code as needed
-	fmt.Printf("Authorization Code: %s\n", code)
+	// fmt.Printf("Authorization Code: %s\n", code)
 
 	resObj1 := e.POST("/token").
 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
@@ -1034,7 +1040,7 @@ func TestAuthorizeCodeWithChallengeS256OpenidCustomTokenExp(t *testing.T) {
 	}
 
 	// Log or use the extracted code as needed
-	fmt.Printf("Authorization Code: %s\n", code)
+	// fmt.Printf("Authorization Code: %s\n", code)
 
 	resObj1 := e.POST("/token").
 		WithFormField("redirect_uri", csrv.URL+"/oauth2").
