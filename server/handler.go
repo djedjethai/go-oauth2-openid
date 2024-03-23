@@ -53,7 +53,7 @@ type (
 	ResponseTokenHandler func(w http.ResponseWriter, data map[string]interface{}, header http.Header, statusCode ...int) error
 
 	// UserOpenidHandler handle the jwt encoding, credential and user data for the jwt
-	UserOpenidHandler func(w http.ResponseWriter, r *http.Request) (openidInfo map[string]interface{}, keyID string, secretKey string, encoding string, err error)
+	UserOpenidHandler func(w http.ResponseWriter, r *http.Request, role ...string) (openidInfo map[string]interface{}, keyID string, secretKey string, encoding string, err error)
 
 	// CustomizeTokenPayloadHandler give control to the user on the returned payload
 	CustomizeTokenPayloadHandler func(r *http.Request, data map[string]interface{}) (err error, payload interface{})

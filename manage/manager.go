@@ -2,6 +2,7 @@ package manage
 
 import (
 	"context"
+	// "fmt"
 	"time"
 
 	oauth2 "github.com/djedjethai/go-oauth2-openid"
@@ -206,6 +207,7 @@ func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType,
 	ti.SetUserID(tgr.UserID)
 	ti.SetRedirectURI(tgr.RedirectURI)
 	ti.SetScope(tgr.Scope)
+	ti.SetRole(tgr.Role)
 
 	createAt := time.Now()
 	td := &oauth2.GenerateBasic{
@@ -275,6 +277,7 @@ func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType,
 // get authorization code data
 func (m *Manager) getAuthorizationCode(ctx context.Context, code string) (oauth2.TokenInfo, error) {
 	ti, err := m.tokenStore.GetByCode(ctx, code)
+
 	if err != nil {
 		return nil, err
 	} else if ti == nil || ti.GetCode() != code || ti.GetCodeCreateAt().Add(ti.GetCodeExpiresIn()).Before(time.Now()) {
@@ -289,7 +292,7 @@ func (m *Manager) delAuthorizationCode(ctx context.Context, code string) error {
 	return m.tokenStore.RemoveByCode(ctx, code)
 }
 
-// NOTE ....
+// NOTE NOTE.... do not delete the code ....?? why ??
 // get and delete authorization code data
 func (m *Manager) getAndDelAuthorizationCode(ctx context.Context, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
 	code := tgr.Code
@@ -303,10 +306,10 @@ func (m *Manager) getAndDelAuthorizationCode(ctx context.Context, tgr *oauth2.To
 		return nil, errors.ErrInvalidAuthorizeCode
 	}
 
-	err = m.delAuthorizationCode(ctx, code)
-	if err != nil {
-		return nil, err
-	}
+	// err = m.delAuthorizationCode(ctx, code)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	return ti, nil
 }
 
@@ -338,6 +341,7 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 	if err != nil {
 		return nil, err
 	}
+
 	if cliPass, ok := cli.(oauth2.ClientPasswordVerifier); ok {
 		if !cliPass.VerifyPassword(tgr.ClientSecret) {
 			return nil, errors.ErrInvalidClient
@@ -345,6 +349,7 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 	} else if len(cli.GetSecret()) > 0 && tgr.ClientSecret != cli.GetSecret() {
 		return nil, errors.ErrInvalidClient
 	}
+
 	if tgr.RedirectURI != "" {
 		if err := m.validateURI(cli.GetDomain(), tgr.RedirectURI); err != nil {
 			return nil, err
@@ -367,6 +372,7 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 
 		tgr.UserID = ti.GetUserID()
 		tgr.Scope = ti.GetScope()
+		tgr.Role = ti.GetRole()
 		if exp := ti.GetAccessExpiresIn(); exp > 0 {
 			tgr.AccessTokenExp = exp
 		}

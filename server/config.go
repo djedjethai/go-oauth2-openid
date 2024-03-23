@@ -40,6 +40,7 @@ type AuthorizeRequest struct {
 	ResponseType        oauth2.ResponseType
 	ClientID            string
 	Scope               string
+	Role                string
 	RedirectURI         string
 	State               string
 	UserID              string

@@ -135,6 +135,7 @@ func (a *JWTAccessGenerate) GenerateOpenidJWToken(ctx context.Context, ti oauth2
 // TODO that works only for token of type HS, implement others
 func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, tokenString string) error {
 	if a.isHs() {
+
 		var secretKey = a.signedKey
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -188,7 +189,7 @@ func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenStrin
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			// Access openidInfo claims
 			// TODO maybe loop on the claim to get all datas
-			data["email"] = claims["sub"]
+			data["sub"] = claims["sub"]
 			if openidInfo, ok := claims["openidInfo"].(map[string]interface{}); ok {
 				for k, v := range openidInfo {
 					data[k] = v
@@ -221,7 +222,7 @@ func (a *JWTAccessGenerate) GetdataAdminOpenidJWToken(ctx context.Context, token
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			// Access openidInfo claims
 			// TODO maybe loop on the claim to get all datas
-			data["email"] = claims["sub"]
+			data["sub"] = claims["sub"]
 			if openidInfo, ok := claims["openidInfo"].(map[string]interface{}); ok {
 				for k, v := range openidInfo {
 					data[k] = v
