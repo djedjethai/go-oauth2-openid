@@ -618,10 +618,17 @@ func (s *Server) GetJWTokenData(ti oauth2.TokenInfo, jwtToken, jwtRefreshToken s
 // HandleOpenidRequest handle the creation of the jwtokens and return them
 func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, ti oauth2.TokenInfo) (map[string]interface{}, error) {
 
-	fmt.Println("server.go --- HandleOpenidRequest --- see ti.GetRole()-------------------------------------------------------------------------------: ", ti.GetRole())
+	// fmt.Println("server.go --- HandleOpenidRequest --- see ti.GetRole()-------------------------------------------------------------------------------: ", ti.GetRole())
 
 	// in UserOpenidHandler a call to the db can be done to populate the user info
-	data, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r, ti.GetRole())
+	data, keyID, secretKey, encoding, err := s.UserOpenidHandler(w, r, ti.GetRole())
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("server.go --- HandleOpenidRequest --- see keyID-------------------------------------------------------------------------------: ", keyID)
+	fmt.Println("server.go --- HandleOpenidRequest --- see secretKey-------------------------------------------------------------------------------: ", secretKey)
+	fmt.Println("server.go --- HandleOpenidRequest --- see encoding-------------------------------------------------------------------------------: ", encoding)
 
 	// overwrite the role allow to finally customumize it
 	if role := r.FormValue("role"); len(role) > 0 {
@@ -634,10 +641,10 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 		return nil, errors.New("no role defined")
 	}
 
-	fmt.Println("server.go - HandleOpenidRequest - see the role: ", ti.GetRole())
+	// fmt.Println("server.go - HandleOpenidRequest - see the role: ", ti.GetRole())
 
 	//fmt.Println("server.go - HandleOpenidRequest - see the email-=-=-=-=: ", email)
-	fmt.Println("server.go - HandleOpenidRequest - see the data-=-=-=-=: ", data)
+	// fmt.Println("server.go - HandleOpenidRequest - see the data-=-=-=-=: ", data)
 
 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
 	at, rt, err := jwtAG.GenerateOpenidJWToken(ctx, ti, true, oauth2.OpenidInfo(data))
@@ -677,7 +684,15 @@ func (s *Server) UpsertClientJWToken(ctx context.Context, id, JWToken string) er
 
 // RefreshOpenidToken valid and refresh(if not expire) the jwtokens
 func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, r *http.Request, data map[string]interface{}) error {
-	_, keyID, secretKey, encoding, _ := s.UserOpenidHandler(w, r)
+	_, keyID, secretKey, encoding, err := s.UserOpenidHandler(w, r)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("server.go - RefreshOpenidToken - keyID =-=-=-=-=-=--=-=-=-=: ", keyID)
+	fmt.Println("server.go - RefreshOpenidToken - secretKey =-=-=-=-=-=--=-=-=-=: ", secretKey)
+	fmt.Println("server.go - RefreshOpenidToken - encoding =-=-=-=-=-=--=-=-=-=: ", encoding)
+
 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
 
 	accessJWToken := r.Header.Get("jwt_access_token")
@@ -685,20 +700,27 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 	// accessToken := r.Header.Get("access_token")
 	refreshToken := r.Header.Get("refresh_token")
 
+	fmt.Println("server.go - RefreshOpenidToken - accessJWToken =-=-=-=-=-=--=-=-=-=: ", accessJWToken)
+	fmt.Println("server.go - RefreshOpenidToken - refreshJWToken =-=-=-=-=-=--=-=-=-=: ", refreshJWToken)
+	fmt.Println("server.go - RefreshOpenidToken - refreshToken =-=-=-=-=-=--=-=-=-=: ", refreshToken)
+
 	// accessJWToken := data["jwt_access_token"].(string)
 	// refreshJWToken := data["jwt_refresh_token"].(string)
 	// accessToken := r.Header.Get("access_token")
 	// refreshToken := data["refresh_token"].(string)
 
 	// if accessJWToken is invalid return but if expired continue
-	err := jwtAG.ValidOpenidJWToken(ctx, accessJWToken)
+	err = jwtAG.ValidOpenidJWToken(ctx, accessJWToken)
 	if err != nil && err.Error() == "invalid jwt token" {
+		// fmt.Println("server.go - RefreshOpenidToken - error invalid accessToken =-=-=-=-=-=--=-=-=-= 111: ", err)
 		return err
 	}
 
 	// if refreshJWToken is invalid return, if expired return
 	err = jwtAG.ValidOpenidJWToken(ctx, refreshJWToken)
+	// err = jwtAG.ValidOpenidJWToken(ctx, accessJWToken)
 	if err != nil {
+		fmt.Println("server.go - RefreshOpenidToken - error invalid refrehToken =-=-=-=-=-=--=-=-=-=: ", err)
 		return err
 	} else {
 
@@ -708,6 +730,7 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 		// if err != nil {
 		// 	return err
 		// }
+		fmt.Println("server.go - RefreshOpenidToken - in else =-=-=-=-=-=--=-=-=-=: ")
 
 		// get tokenInfo data matching the rt
 		ti, err := s.Manager.RefreshTokens(ctx, refreshToken)
