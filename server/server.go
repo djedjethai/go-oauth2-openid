@@ -689,47 +689,30 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 		return err
 	}
 
-	fmt.Println("server.go - RefreshOpenidToken - keyID =-=-=-=-=-=--=-=-=-=: ", keyID)
-	fmt.Println("server.go - RefreshOpenidToken - secretKey =-=-=-=-=-=--=-=-=-=: ", secretKey)
-	fmt.Println("server.go - RefreshOpenidToken - encoding =-=-=-=-=-=--=-=-=-=: ", encoding)
-
 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
 
 	accessJWToken := r.Header.Get("jwt_access_token")
 	refreshJWToken := r.Header.Get("jwt_refresh_token")
-	// accessToken := r.Header.Get("access_token")
 	refreshToken := r.Header.Get("refresh_token")
 
-	fmt.Println("server.go - RefreshOpenidToken - accessJWToken =-=-=-=-=-=--=-=-=-=: ", accessJWToken)
-	fmt.Println("server.go - RefreshOpenidToken - refreshJWToken =-=-=-=-=-=--=-=-=-=: ", refreshJWToken)
-	fmt.Println("server.go - RefreshOpenidToken - refreshToken =-=-=-=-=-=--=-=-=-=: ", refreshToken)
-
-	// accessJWToken := data["jwt_access_token"].(string)
-	// refreshJWToken := data["jwt_refresh_token"].(string)
-	// accessToken := r.Header.Get("access_token")
-	// refreshToken := data["refresh_token"].(string)
+	// fmt.Println("server.go - RefreshOpenidToken - accessJWToken =-=-=-=-=-=--=-=-=-=: ", accessJWToken)
+	// fmt.Println("server.go - RefreshOpenidToken - refreshJWToken =-=-=-=-=-=--=-=-=-=: ", refreshJWToken)
+	// fmt.Println("server.go - RefreshOpenidToken - refreshToken =-=-=-=-=-=--=-=-=-=: ", refreshToken)
 
 	// if accessJWToken is invalid return but if expired continue
 	err = jwtAG.ValidOpenidJWToken(ctx, accessJWToken)
 	if err != nil && err.Error() == "invalid jwt token" {
-		// fmt.Println("server.go - RefreshOpenidToken - error invalid accessToken =-=-=-=-=-=--=-=-=-= 111: ", err)
+		// fmt.Println("server.go - RefreshOpenidToken - error invalid accessToken =-=-=-=-=-=--=-=-=-= 222222: ", err)
 		return err
 	}
 
 	// if refreshJWToken is invalid return, if expired return
 	err = jwtAG.ValidOpenidJWToken(ctx, refreshJWToken)
-	// err = jwtAG.ValidOpenidJWToken(ctx, accessJWToken)
 	if err != nil {
-		fmt.Println("server.go - RefreshOpenidToken - error invalid refrehToken =-=-=-=-=-=--=-=-=-=: ", err)
+		// fmt.Println("server.go - RefreshOpenidToken - error invalid refrehToken =-=-=-=-=-=--=-=-=-=: ", err)
 		return err
 	} else {
 
-		// // get the refresh token
-		// // data, _, rt, err := jwtAG.GetOauthTokensFromOpenidJWToken(ctx, refreshJWToken)
-		// data, err := jwtAG.GetdataOpenidJWToken(ctx, refreshJWToken)
-		// if err != nil {
-		// 	return err
-		// }
 		fmt.Println("server.go - RefreshOpenidToken - in else =-=-=-=-=-=--=-=-=-=: ")
 
 		// get tokenInfo data matching the rt
@@ -741,10 +724,6 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 		// set the ti created time to now()
 		ti.SetAccessCreateAt(time.Now())
 
-		// dataJWT := data
-		// delete(dataJWT, "jwt_access_token")
-		// delete(dataJWT, "jwt_refresh_token")
-		// delete(dataJWT, "refresh_token")
 		delete(data, "sub")
 
 		atJWT, rtJWT, err := jwtAG.GenerateOpenidJWToken(ctx, ti, true, data)
@@ -754,15 +733,7 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 
 		data["jwt_access_token"] = atJWT
 		data["jwt_refresh_token"] = rtJWT
-		// data["token_type"] = s.Config.TokenType
-		// data["expires_in"] = int64(ti.GetAccessExpiresIn() / time.Second)
 
-		// tokenData, err := s.GetJWTokenData(ti, atJWT, rtJWT), nil
-		// if err != nil {
-		// 	return errors.ErrServerError
-		// }
-
-		// return s.token(w, r, tokenData, nil, ti, http.StatusOK)
 		return s.token(w, r, data, nil, ti, http.StatusOK)
 	}
 

@@ -3,7 +3,6 @@ package generates
 import (
 	"context"
 	"encoding/base64"
-	// "fmt"
 	"strings"
 	"time"
 
@@ -142,7 +141,13 @@ func (a *JWTAccessGenerate) ValidOpenidJWToken(ctx context.Context, tokenString 
 			claims := token.Claims.(jwt.MapClaims)
 			err := claims.Valid()
 			if err != nil {
-				return nil, errors.ErrExpiredJWToken
+				// Check if the error is due to token expiration
+				if ve, ok := err.(*jwt.ValidationError); ok && ve.Errors == jwt.ValidationErrorExpired {
+
+					return nil, errors.ErrExpiredJWToken
+				}
+
+				return nil, err
 			}
 
 			return secretKey, nil
@@ -176,19 +181,28 @@ func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenStrin
 			claims := token.Claims.(jwt.MapClaims)
 			err := claims.Valid()
 			if err != nil {
-				return nil, errors.ErrExpiredJWToken
+				// Check if the error is due to token expiration
+				if ve, ok := err.(*jwt.ValidationError); ok && ve.Errors == jwt.ValidationErrorExpired {
+
+					return nil, errors.ErrExpiredJWToken
+				}
+
+				return nil, err
 			}
 
 			return secretKey, nil
 		})
 		if err != nil {
-			return data, errors.ErrInvalidJWToken
+			if err.Error() == "token contains an invalid number of segments" ||
+				err.Error() == "signature is invalid" {
+				return nil, errors.ErrInvalidJWToken
+			}
+			return nil, err
 		}
 
 		// Check if the token is valid
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			// Access openidInfo claims
-			// TODO maybe loop on the claim to get all datas
 			data["sub"] = claims["sub"]
 			if openidInfo, ok := claims["openidInfo"].(map[string]interface{}); ok {
 				for k, v := range openidInfo {
@@ -221,7 +235,6 @@ func (a *JWTAccessGenerate) GetdataAdminOpenidJWToken(ctx context.Context, token
 		// Check if the token is valid
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			// Access openidInfo claims
-			// TODO maybe loop on the claim to get all datas
 			data["sub"] = claims["sub"]
 			if openidInfo, ok := claims["openidInfo"].(map[string]interface{}); ok {
 				for k, v := range openidInfo {
