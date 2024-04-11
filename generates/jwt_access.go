@@ -200,7 +200,6 @@ func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenStrin
 			return nil, err
 		}
 
-		// Check if the token is valid
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			// Access openidInfo claims
 			data["sub"] = claims["sub"]
@@ -220,7 +219,7 @@ func (a *JWTAccessGenerate) GetdataOpenidJWToken(ctx context.Context, tokenStrin
 }
 
 // GetdataOpenidJWToken return the user's data stored into the JWT
-// NOTE the diff with GetdataOpenidJWToken() is that the jwt expiration does not matter
+// the diff with GetdataOpenidJWToken() is that the jwt expiration does not matter
 func (a *JWTAccessGenerate) GetdataAdminOpenidJWToken(ctx context.Context, tokenString string) (map[string]interface{}, error) {
 
 	data := make(map[string]interface{})
@@ -232,7 +231,6 @@ func (a *JWTAccessGenerate) GetdataAdminOpenidJWToken(ctx context.Context, token
 			return secretKey, nil
 		})
 
-		// Check if the token is valid
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			// Access openidInfo claims
 			data["sub"] = claims["sub"]

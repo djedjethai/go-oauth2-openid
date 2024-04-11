@@ -2,7 +2,6 @@ package manage
 
 import (
 	"context"
-	// "fmt"
 	"time"
 
 	oauth2 "github.com/djedjethai/go-oauth2-openid"
@@ -51,7 +50,6 @@ type Manager struct {
 	clientStore       oauth2.ClientStore
 }
 
-// NOTE NOTE
 // get grant type config
 func (m *Manager) grantConfig(gt oauth2.GrantType, role ...string) *Config {
 	if c, ok := m.gtcfg[gt]; ok && c != nil {
@@ -62,6 +60,7 @@ func (m *Manager) grantConfig(gt oauth2.GrantType, role ...string) *Config {
 		if len(role) > 0 {
 			switch role[0] {
 			case "APIserver":
+				// specific default expiration time in case of APIserver
 				return DefaultAuthorizeCodeAPIServerCfg
 			}
 		}
@@ -273,7 +272,6 @@ func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType,
 	return ti, nil
 }
 
-// NOTE  ....
 // get authorization code data
 func (m *Manager) getAuthorizationCode(ctx context.Context, code string) (oauth2.TokenInfo, error) {
 	ti, err := m.tokenStore.GetByCode(ctx, code)
@@ -292,8 +290,7 @@ func (m *Manager) delAuthorizationCode(ctx context.Context, code string) error {
 	return m.tokenStore.RemoveByCode(ctx, code)
 }
 
-// NOTE NOTE.... do not delete the code ....?? why ??
-// get and delete authorization code data
+// do not delete the code as if req fail, the user can not authenticate anymore
 func (m *Manager) getAndDelAuthorizationCode(ctx context.Context, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
 	code := tgr.Code
 
@@ -306,10 +303,6 @@ func (m *Manager) getAndDelAuthorizationCode(ctx context.Context, tgr *oauth2.To
 		return nil, errors.ErrInvalidAuthorizeCode
 	}
 
-	// err = m.delAuthorizationCode(ctx, code)
-	// if err != nil {
-	// 	return nil, err
-	// }
 	return ti, nil
 }
 
@@ -389,7 +382,6 @@ func (m *Manager) GenerateAccessToken(ctx context.Context, gt oauth2.GrantType, 
 	ti.SetAccessCreateAt(createAt)
 
 	// set access token expires
-	// NOTE NOTE
 	gcfg := m.grantConfig(gt, ti.GetRole())
 	aexp := gcfg.AccessTokenExp
 	if exp := tgr.AccessTokenExp; exp > 0 {

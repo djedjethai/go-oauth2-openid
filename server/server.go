@@ -81,12 +81,48 @@ func (s *Server) handleError(w http.ResponseWriter, req *AuthorizeRequest, err e
 	return s.redirectError(w, req, err)
 }
 
+// BaseError is a customized error matching the CustomizedError
+type BaseError struct {
+	Code        int    `json:"code"`
+	Description string `json:"description"`
+}
+
+// handleCustomizedError handles the Customized errors from the app
+func (s *Server) handleCustomizedError(w http.ResponseWriter, req *AuthorizeRequest, err error) error {
+	// default error
+	errorCode := http.StatusInternalServerError
+	ce := BaseError{}
+	ce.Code = errorCode
+	ce.Description = "internal server error"
+
+	parts := strings.Split(err.Error(), ":")
+	if len(parts) == 0 {
+		json.NewEncoder(w).Encode(ce)
+		return nil
+	}
+
+	errorCode, err = strconv.Atoi(strings.TrimSpace(parts[0]))
+	if err != nil {
+		json.NewEncoder(w).Encode(ce)
+		return nil
+	}
+
+	ce.Code = errorCode
+	ce.Description = strings.TrimSpace(parts[1])
+
+	w.WriteHeader(errorCode)
+	json.NewEncoder(w).Encode(ce)
+
+	return nil
+}
+
 func (s *Server) redirectError(w http.ResponseWriter, req *AuthorizeRequest, err error) error {
 	if req == nil {
 		return err
 	}
 
 	data, _, _ := s.GetErrorData(err)
+
 	return s.redirect(w, req, data)
 }
 
@@ -106,8 +142,6 @@ func (s *Server) redirect(w http.ResponseWriter, req *AuthorizeRequest, data map
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Pragma", "no-cache")
 
-		// fmt.Println("server - server.go - redirect() - see data: ", data)
-
 		w.WriteHeader(http.StatusOK)
 		return json.NewEncoder(w).Encode(data)
 	}
@@ -115,6 +149,7 @@ func (s *Server) redirect(w http.ResponseWriter, req *AuthorizeRequest, data map
 
 func (s *Server) tokenError(w http.ResponseWriter, r *http.Request, ti oauth2.TokenInfo, err error) error {
 	data, statusCode, header := s.GetErrorData(err)
+
 	return s.token(w, r, data, header, ti, statusCode)
 }
 
@@ -220,8 +255,7 @@ func (s *Server) ValidationAuthorizeRequest(r *http.Request) (*AuthorizeRequest,
 
 	redirectURI := r.FormValue("redirect_uri")
 	clientID := r.FormValue("client_id")
-	if !(r.Method == "GET" || r.Method == "POST") ||
-		clientID == "" {
+	if !(r.Method == "GET" || r.Method == "POST") || clientID == "" {
 		return nil, errors.ErrInvalidRequest
 	}
 
@@ -323,7 +357,6 @@ func (s *Server) GetAuthorizeData(rt oauth2.ResponseType, ti oauth2.TokenInfo) m
 	return s.GetTokenData(ti)
 }
 
-// NOTE ....
 // HandleAuthorizeRequest the authorization request handling
 func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) error {
 
@@ -334,13 +367,9 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 		return s.handleError(w, req, err)
 	}
 
-	// NOTE when frontend connect(without user cred) flow stop here
-	// user authorization
-
 	userID, err := s.UserAuthorizationHandler(w, r)
-	// fmt.Println("server.go - HandleAuthorizeRequest - userID: ", userID)
 	if err != nil {
-		return s.handleError(w, req, err)
+		return s.handleCustomizedError(w, req, err)
 	} else if userID == "" {
 		return nil
 	}
@@ -383,7 +412,6 @@ func (s *Server) HandleAuthorizeRequest(w http.ResponseWriter, r *http.Request) 
 	return s.redirect(w, req, s.GetAuthorizeData(req.ResponseType, ti))
 }
 
-// NOTE ....
 // ValidationTokenRequest the token request validation
 func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oauth2.TokenGenerateRequest, error) {
 	if v := r.Method; !(v == "POST" ||
@@ -471,7 +499,6 @@ func (s *Server) CheckGrantType(gt oauth2.GrantType) bool {
 	return false
 }
 
-// NOTE NOTE
 // GetAccessToken access token
 func (s *Server) GetAccessToken(ctx context.Context, gt oauth2.GrantType, tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
 
@@ -599,7 +626,6 @@ func (s *Server) GetJWTokenData(ti oauth2.TokenInfo, jwtToken, jwtRefreshToken s
 
 	data["jwt_refresh_token"] = jwtRefreshToken
 
-	// TODO that's not good...............................
 	data["role"] = ti.GetRole()
 
 	// if fn := s.ExtensionFieldsHandler; fn != nil {
@@ -614,21 +640,14 @@ func (s *Server) GetJWTokenData(ti oauth2.TokenInfo, jwtToken, jwtRefreshToken s
 	return data
 }
 
-// NOTE NOTE
 // HandleOpenidRequest handle the creation of the jwtokens and return them
 func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, ti oauth2.TokenInfo) (map[string]interface{}, error) {
-
-	// fmt.Println("server.go --- HandleOpenidRequest --- see ti.GetRole()-------------------------------------------------------------------------------: ", ti.GetRole())
 
 	// in UserOpenidHandler a call to the db can be done to populate the user info
 	data, keyID, secretKey, encoding, err := s.UserOpenidHandler(w, r, ti.GetRole())
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("server.go --- HandleOpenidRequest --- see keyID-------------------------------------------------------------------------------: ", keyID)
-	fmt.Println("server.go --- HandleOpenidRequest --- see secretKey-------------------------------------------------------------------------------: ", secretKey)
-	fmt.Println("server.go --- HandleOpenidRequest --- see encoding-------------------------------------------------------------------------------: ", encoding)
 
 	// overwrite the role allow to finally customumize it
 	if role := r.FormValue("role"); len(role) > 0 {
@@ -640,11 +659,6 @@ func (s *Server) HandleOpenidRequest(ctx context.Context, w http.ResponseWriter,
 	if role == "" {
 		return nil, errors.New("no role defined")
 	}
-
-	// fmt.Println("server.go - HandleOpenidRequest - see the role: ", ti.GetRole())
-
-	//fmt.Println("server.go - HandleOpenidRequest - see the email-=-=-=-=: ", email)
-	// fmt.Println("server.go - HandleOpenidRequest - see the data-=-=-=-=: ", data)
 
 	jwtAG := s.Manager.CreateJWTAccessGenerate(keyID, []byte(secretKey), encoding)
 	at, rt, err := jwtAG.GenerateOpenidJWToken(ctx, ti, true, oauth2.OpenidInfo(data))
@@ -695,25 +709,17 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 	refreshJWToken := r.Header.Get("jwt_refresh_token")
 	refreshToken := r.Header.Get("refresh_token")
 
-	// fmt.Println("server.go - RefreshOpenidToken - accessJWToken =-=-=-=-=-=--=-=-=-=: ", accessJWToken)
-	// fmt.Println("server.go - RefreshOpenidToken - refreshJWToken =-=-=-=-=-=--=-=-=-=: ", refreshJWToken)
-	// fmt.Println("server.go - RefreshOpenidToken - refreshToken =-=-=-=-=-=--=-=-=-=: ", refreshToken)
-
 	// if accessJWToken is invalid return but if expired continue
 	err = jwtAG.ValidOpenidJWToken(ctx, accessJWToken)
 	if err != nil && err.Error() == "invalid jwt token" {
-		// fmt.Println("server.go - RefreshOpenidToken - error invalid accessToken =-=-=-=-=-=--=-=-=-= 222222: ", err)
 		return err
 	}
 
 	// if refreshJWToken is invalid return, if expired return
 	err = jwtAG.ValidOpenidJWToken(ctx, refreshJWToken)
 	if err != nil {
-		// fmt.Println("server.go - RefreshOpenidToken - error invalid refrehToken =-=-=-=-=-=--=-=-=-=: ", err)
 		return err
 	} else {
-
-		fmt.Println("server.go - RefreshOpenidToken - in else =-=-=-=-=-=--=-=-=-=: ")
 
 		// get tokenInfo data matching the rt
 		ti, err := s.Manager.RefreshTokens(ctx, refreshToken)
@@ -739,7 +745,6 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 
 }
 
-// NOTE NOTE
 // HandleTokenRequest token request handling
 func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
@@ -754,7 +759,7 @@ func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) erro
 		return s.tokenError(w, r, nil, err)
 	}
 
-	fmt.Println("server.go - HandleTokenRequest - ti: ", ti)
+	//fmt.Println("server.go - HandleTokenRequest - ti: ", ti)
 	scopesArray := strings.Split(ti.GetScope(), ",")
 	if len(scopesArray) > 0 {
 		for _, sc := range scopesArray {
