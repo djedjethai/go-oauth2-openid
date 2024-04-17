@@ -342,8 +342,6 @@ func (s *Server) GetAuthorizeToken(ctx context.Context, req *AuthorizeRequest) (
 
 	ti, err := s.Manager.GenerateAuthToken(ctx, req.ResponseType, tgr)
 
-	// fmt.Println("server - server.go - GetAuthorizeToken() - see ti: ", ti, " see err: ", err)
-
 	return ti, err
 }
 

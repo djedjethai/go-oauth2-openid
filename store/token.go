@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 
 	oauth2 "github.com/djedjethai/go-oauth2-openid"
@@ -177,7 +176,6 @@ func (ts *TokenStore) getBasicID(key string) (string, error) {
 		}
 		return "", err
 	}
-	log.Println("token.go in getBasicID", basicID)
 	return basicID, nil
 }
 
