@@ -2,6 +2,7 @@ package manage
 
 import (
 	"context"
+	// "fmt"
 	"time"
 
 	oauth2 "github.com/djedjethai/go-oauth2-openid"
@@ -286,7 +287,7 @@ func (m *Manager) getAuthorizationCode(ctx context.Context, code string) (oauth2
 }
 
 // delete authorization code data
-func (m *Manager) delAuthorizationCode(ctx context.Context, code string) error {
+func (m *Manager) DeleteAuthorizationCode(ctx context.Context, code string) error {
 	return m.tokenStore.RemoveByCode(ctx, code)
 }
 

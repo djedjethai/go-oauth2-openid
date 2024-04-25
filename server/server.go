@@ -252,7 +252,6 @@ func (s *Server) CheckCodeChallengeMethod(ccm oauth2.CodeChallengeMethod) bool {
 
 // ValidationAuthorizeRequest the authorization request validation
 func (s *Server) ValidationAuthorizeRequest(r *http.Request) (*AuthorizeRequest, error) {
-
 	redirectURI := r.FormValue("redirect_uri")
 	clientID := r.FormValue("client_id")
 	if !(r.Method == "GET" || r.Method == "POST") || clientID == "" {
@@ -745,6 +744,7 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 
 // HandleTokenRequest token request handling
 func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) error {
+
 	ctx := r.Context()
 
 	gt, tgr, err := s.ValidationTokenRequest(r)
@@ -753,6 +753,12 @@ func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) erro
 	}
 
 	ti, err := s.GetAccessToken(ctx, gt, tgr)
+	if err != nil {
+		return s.tokenError(w, r, nil, err)
+	}
+
+	// delete the code from db
+	err = s.Manager.DeleteAuthorizationCode(ctx, tgr.Code)
 	if err != nil {
 		return s.tokenError(w, r, nil, err)
 	}

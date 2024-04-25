@@ -52,6 +52,8 @@ type Manager interface {
 
 	CreateJWTAccessGenerate(keyID string, secretKey []byte, signInMethod ...string) JWTAccessGenerate
 
+	DeleteAuthorizationCode(ctx context.Context, code string) error
+
 	// RefreshTokens refresh access and refresh JWT tokens
 	RefreshTokens(ctx context.Context, refresh string) (TokenInfo, error)
 

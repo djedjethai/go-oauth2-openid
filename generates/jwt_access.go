@@ -52,6 +52,7 @@ func (a *JWTAccessGenerate) CreateJWTAccessGenerate(kid string, key []byte, meth
 	na.signedKeyID = kid
 	na.signedKey = key
 	na.signedMethod = method
+
 	return na
 }
 
