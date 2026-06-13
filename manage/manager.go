@@ -2,13 +2,17 @@ package manage
 
 import (
 	"context"
-	// "fmt"
 	"time"
 
 	oauth2 "github.com/djedjethai/go-oauth2-openid"
 	"github.com/djedjethai/go-oauth2-openid/errors"
 	"github.com/djedjethai/go-oauth2-openid/generates"
 	"github.com/djedjethai/go-oauth2-openid/models"
+)
+
+const (
+	rbacServer = "APIserver"
+	rbacUser   = "user"
 )
 
 // NewDefaultManager create to default authorization management instance
@@ -210,6 +214,7 @@ func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType,
 	ti.SetRole(tgr.Role)
 
 	createAt := time.Now()
+
 	td := &oauth2.GenerateBasic{
 		Client:    cli,
 		UserID:    tgr.UserID,
@@ -266,6 +271,11 @@ func (m *Manager) GenerateAuthToken(ctx context.Context, rt oauth2.ResponseType,
 		}
 	}
 
+	// clean previous entry before to re-create it
+	if ti.GetRole() == rbacServer {
+		_ = m.tokenStore.RemoveByService(ctx, ti.GetClientID())
+	}
+
 	err = m.tokenStore.Create(ctx, ti)
 	if err != nil {
 		return nil, err
@@ -286,6 +296,7 @@ func (m *Manager) getAuthorizationCode(ctx context.Context, code string) (oauth2
 	return ti, nil
 }
 
+// NOTE maybe useless..... ???
 // delete authorization code data
 func (m *Manager) DeleteAuthorizationCode(ctx context.Context, code string) error {
 	return m.tokenStore.RemoveByCode(ctx, code)

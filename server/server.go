@@ -739,7 +739,6 @@ func (s *Server) RefreshOpenidToken(ctx context.Context, w http.ResponseWriter, 
 
 		return s.token(w, r, data, nil, ti, http.StatusOK)
 	}
-
 }
 
 // HandleTokenRequest token request handling
@@ -757,6 +756,7 @@ func (s *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) erro
 		return s.tokenError(w, r, nil, err)
 	}
 
+	// NOTE NOTE useless ?? does not work ....?? and actually should not delete ??
 	// delete the code from db
 	err = s.Manager.DeleteAuthorizationCode(ctx, tgr.Code)
 	if err != nil {

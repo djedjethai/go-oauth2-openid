@@ -39,6 +39,10 @@ type (
 		// use the refresh token to delete all the tokens
 		RemoveAllTokensByRefresh(ctx context.Context, refresh string) error
 
+		// NOTE
+		// use the serviceName to delete all entries associated to it
+		RemoveByService(ctx context.Context, svcName string) error
+
 		// use the authorization code for token information data
 		GetByCode(ctx context.Context, code string) (TokenInfo, error)
 

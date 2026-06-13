@@ -30,6 +30,11 @@ type TokenStore struct {
 	db *buntdb.DB
 }
 
+type BasicData struct {
+	Service string `json:"service"`
+	Jv      string `json:"jv"`
+}
+
 // Create create and store the new token information
 func (ts *TokenStore) Create(ctx context.Context, info oauth2.TokenInfo) error {
 	ct := time.Now()
@@ -38,9 +43,27 @@ func (ts *TokenStore) Create(ctx context.Context, info oauth2.TokenInfo) error {
 		return err
 	}
 
+	cid := info.GetClientID()
+	uid := info.GetUserID()
+	var svcName = ""
+	if cid != "" {
+		svcName = cid
+	}
+	if uid != "" {
+		svcName = uid
+	}
+	bd := BasicData{
+		Service: svcName,
+		Jv:      string(jv),
+	}
+	bdJSON, err := json.Marshal(bd)
+	if err != nil {
+		return err
+	}
+
 	err = ts.db.Update(func(tx *buntdb.Tx) error {
 		if code := info.GetCode(); code != "" {
-			_, _, err := tx.Set(code, string(jv), &buntdb.SetOptions{Expires: true, TTL: info.GetCodeExpiresIn()})
+			_, _, err := tx.Set(code, string(bdJSON), &buntdb.SetOptions{Expires: true, TTL: info.GetCodeExpiresIn()})
 			return err
 		}
 
@@ -60,7 +83,7 @@ func (ts *TokenStore) Create(ctx context.Context, info oauth2.TokenInfo) error {
 			}
 		}
 
-		_, _, err := tx.Set(basicID, string(jv), &buntdb.SetOptions{Expires: expires, TTL: rexp})
+		_, _, err = tx.Set(basicID, string(bdJSON), &buntdb.SetOptions{Expires: expires, TTL: rexp})
 		if err != nil {
 			return err
 		}
@@ -135,16 +158,49 @@ func (ts *TokenStore) RemoveAllTokensByRefresh(ctx context.Context, refresh stri
 	return err
 }
 
+// RemoveByService remove the entry, based on the service name
+func (ts *TokenStore) RemoveByService(ctx context.Context, svcName string) (err error) {
+	var kk string
+
+	err = ts.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, val string) bool {
+
+			var bd BasicData
+			if err := json.Unmarshal([]byte(val), &bd); err != nil {
+				// return true // skip bad records
+			}
+
+			if bd.Service == svcName {
+				kk = key
+			}
+
+			return true
+		})
+	})
+
+	if kk != "" {
+		_ = ts.RemoveByCode(ctx, kk)
+	}
+
+	return
+}
+
 func (ts *TokenStore) getData(key string) (oauth2.TokenInfo, error) {
 	var ti oauth2.TokenInfo
 	err := ts.db.View(func(tx *buntdb.Tx) error {
-		jv, err := tx.Get(key)
+		val, err := tx.Get(key)
+		if err != nil {
+			return err
+		}
+
+		var bd BasicData
+		err = json.Unmarshal([]byte(val), &bd)
 		if err != nil {
 			return err
 		}
 
 		var tm models.Token
-		err = json.Unmarshal([]byte(jv), &tm)
+		err = json.Unmarshal([]byte(bd.Jv), &tm)
 		if err != nil {
 			return err
 		}
